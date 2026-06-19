@@ -19,12 +19,17 @@ export const ClientePopup = ({ open, onClose, onSelect }) => {
       return;
     }
 
+    if (!debouncedQuery.trim()) {
+      setClientes([]);
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
 
     clientesService
-      .list(debouncedQuery || undefined)
+      .list(debouncedQuery)
       .then(res => { if (!cancelled) setClientes(res.data); })
       .catch(() => { if (!cancelled) setError('No se pudo cargar la lista de clientes.'); })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -57,7 +62,15 @@ export const ClientePopup = ({ open, onClose, onSelect }) => {
             <div style={{ padding: 16, color: 'var(--danger)', fontSize: 14 }}>{error}</div>
           )}
 
-          {!loading && !error && clientes.length === 0 && (
+          {!loading && !error && !query.trim() && (
+            <EmptyState
+              icon={Users}
+              title="Buscar clientes"
+              description="Escriba el nombre del cliente para ver resultados."
+            />
+          )}
+
+          {!loading && !error && query.trim() && clientes.length === 0 && (
             <EmptyState
               icon={Users}
               title="Sin resultados"

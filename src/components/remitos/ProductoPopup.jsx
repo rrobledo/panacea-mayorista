@@ -20,12 +20,17 @@ export const ProductoPopup = ({ open, onClose, onAdd }) => {
   useEffect(() => {
     if (!open || step !== 1) return;
 
+    if (!debouncedQuery.trim()) {
+      setProductos([]);
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
 
     productosService
-      .list(debouncedQuery || undefined)
+      .list(debouncedQuery)
       .then(res => { if (!cancelled) setProductos(res.data); })
       .catch(() => { if (!cancelled) setError('No se pudo cargar la lista de productos.'); })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -99,7 +104,15 @@ export const ProductoPopup = ({ open, onClose, onAdd }) => {
               <div style={{ padding: 16, color: 'var(--danger)', fontSize: 14 }}>{error}</div>
             )}
 
-            {!loading && !error && productos.length === 0 && (
+            {!loading && !error && !query.trim() && (
+              <EmptyState
+                icon={Package}
+                title="Buscar productos"
+                description="Escriba el nombre del producto para ver resultados."
+              />
+            )}
+
+            {!loading && !error && query.trim() && productos.length === 0 && (
               <EmptyState
                 icon={Package}
                 title="Sin resultados"
