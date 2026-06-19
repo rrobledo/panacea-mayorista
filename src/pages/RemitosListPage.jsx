@@ -1,5 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, Eye } from 'lucide-react';
 import { DataGrid } from '../components/grid/DataGrid';
@@ -11,19 +10,26 @@ import {
   ESTADO_LABELS, ESTADO_BADGE_CLASS, ESTADO_FILTER_OPTIONS, formatDate,
 } from '../utils/remitosConfig';
 
-const initialFilters = {
-  fechaDesde: '',
-  fechaHasta: '',
-  estadoFilter: '',
+const STORAGE_KEY = 'panacea_remitos_consulta';
+
+const initialFilters = { fechaDesde: '', fechaHasta: '', estadoFilter: '' };
+
+// Read persisted state synchronously so first render is already restored
+const loadSaved = () => {
+  try {
+    const s = sessionStorage.getItem(STORAGE_KEY);
+    return s ? JSON.parse(s) : null;
+  } catch { return null; }
 };
 
-const COLUMNS = (navigate) => [
+const buildColumns = (navigate) => [
   { accessorKey: 'id',        header: '#',              size: 60 },
   {
     id: 'cliente',
     header: 'Cliente',
     size: 200,
-    accessorFn: row => [row.cliente?.nom1, row.cliente?.nom2].filter(Boolean).join(' ') || `#${row.cliente_id}`,
+    accessorFn: row =>
+      [row.cliente?.nom1, row.cliente?.nom2].filter(Boolean).join(' ') || `#${row.cliente_id}`,
   },
   {
     id: 'fecha_entrega',
@@ -65,14 +71,24 @@ const COLUMNS = (navigate) => [
 
 export const RemitosListPage = () => {
   const navigate = useNavigate();
-  const toast = useToast();
+  const toast    = useToast();
 
-  const [filters, setFilters]         = useState(initialFilters);
-  const [cliente, setCliente]         = useState(null);
+  // Initialise from sessionStorage so the state is ready on first render
+  const [saved]  = useState(loadSaved);
+  const [filters,  setFilters]  = useState(saved?.filters  || initialFilters);
+  const [cliente,  setCliente]  = useState(saved?.cliente  || null);
+  const [remitos,  setRemitos]  = useState(saved?.remitos  || []);
+  const [searched, setSearched] = useState(saved?.searched || false);
+  const [pageIndex, setPageIndex] = useState(saved?.pageIndex || 0);
+  const [loading,  setLoading]  = useState(false);
   const [clientePopup, setClientePopup] = useState(false);
-  const [remitos, setRemitos]         = useState([]);
-  const [loading, setLoading]         = useState(false);
-  const [searched, setSearched]       = useState(false);
+
+  const persist = useCallback((overrides = {}) => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+      filters, cliente, remitos, searched, pageIndex,
+      ...overrides,
+    }));
+  }, [filters, cliente, remitos, searched, pageIndex]);
 
   const buscar = () => {
     setLoading(true);
@@ -90,6 +106,10 @@ export const RemitosListPage = () => {
           data = data.filter(r => r.estado === filters.estadoFilter);
         }
         setRemitos(data);
+        setPageIndex(0);
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+          filters, cliente, remitos: data, searched: true, pageIndex: 0,
+        }));
       })
       .catch(() => toast.error('Error al consultar remitos'))
       .finally(() => setLoading(false));
@@ -100,12 +120,19 @@ export const RemitosListPage = () => {
     setCliente(null);
     setRemitos([]);
     setSearched(false);
+    setPageIndex(0);
+    sessionStorage.removeItem(STORAGE_KEY);
   };
+
+  const handlePageChange = useCallback((newPageIndex) => {
+    setPageIndex(newPageIndex);
+    persist({ pageIndex: newPageIndex });
+  }, [persist]);
 
   const nombreCliente = (c) =>
     [c.nom1, c.nom2].filter(Boolean).join(' ') || `Cliente #${c.idcliente}`;
 
-  const columns = COLUMNS(navigate);
+  const columns = buildColumns(navigate);
 
   return (
     <div>
@@ -124,7 +151,6 @@ export const RemitosListPage = () => {
         <div className="card-body">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, alignItems: 'end' }}>
 
-            {/* Fecha desde */}
             <div className="form-group">
               <label className="form-label">Fecha Entrega Desde</label>
               <input
@@ -135,7 +161,6 @@ export const RemitosListPage = () => {
               />
             </div>
 
-            {/* Fecha hasta */}
             <div className="form-group">
               <label className="form-label">Fecha Entrega Hasta</label>
               <input
@@ -146,7 +171,6 @@ export const RemitosListPage = () => {
               />
             </div>
 
-            {/* Cliente */}
             <div className="form-group">
               <label className="form-label">Cliente</label>
               {cliente ? (
@@ -159,7 +183,7 @@ export const RemitosListPage = () => {
                   }}>
                     {nombreCliente(cliente)}
                   </div>
-                  <button className="btn btn-ghost btn-icon" title="Quitar cliente" onClick={() => setCliente(null)}>
+                  <button className="btn btn-ghost btn-icon" title="Quitar" onClick={() => setCliente(null)}>
                     <X size={14} />
                   </button>
                 </div>
@@ -170,7 +194,6 @@ export const RemitosListPage = () => {
               )}
             </div>
 
-            {/* Estado */}
             <div className="form-group">
               <label className="form-label">Estado</label>
               <select
@@ -184,7 +207,6 @@ export const RemitosListPage = () => {
               </select>
             </div>
 
-            {/* Botones */}
             <div style={{ display: 'flex', gap: 8, paddingTop: 2 }}>
               <button className="btn btn-primary" onClick={buscar} disabled={loading}>
                 <Search size={14} />
@@ -208,6 +230,8 @@ export const RemitosListPage = () => {
           data={remitos}
           emptyText="No se encontraron remitos con los filtros seleccionados"
           onRowClick={row => navigate(`/remitos/${row.id}`)}
+          initialPageIndex={pageIndex}
+          onPageChange={handlePageChange}
           pageSize={20}
           showExport={false}
         />

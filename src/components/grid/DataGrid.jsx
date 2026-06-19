@@ -3,7 +3,7 @@ import {
   useReactTable, getCoreRowModel, getSortedRowModel,
   getFilteredRowModel, getPaginationRowModel, flexRender,
 } from '@tanstack/react-table';
-import { ChevronUp, ChevronDown, ChevronsUpDown, Download, Filter } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, Download } from 'lucide-react';
 import { SearchInput, Select } from '../ui';
 
 const SortIcon = ({ sorted }) => {
@@ -21,9 +21,10 @@ export const DataGrid = ({
   actions,
   onExport,
   pageSize: defaultPageSize = 20,
+  initialPageIndex = 0,
+  onPageChange,
   showSearch = true,
   showExport = true,
-  rowKey = 'id',
   onRowClick,
   selectable = false,
   emptyText = 'No records found',
@@ -32,6 +33,10 @@ export const DataGrid = ({
   const [rowSelection, setRowSelection]   = useState({});
   const [sorting, setSorting]             = useState([]);
   const [columnFilters, setColumnFilters] = useState([]);
+  const [pagination, setPagination]       = useState({
+    pageIndex: initialPageIndex,
+    pageSize: defaultPageSize,
+  });
 
   const table = useReactTable({
     data: data || [],
@@ -59,12 +64,16 @@ export const DataGrid = ({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    state: { sorting, columnFilters, globalFilter, rowSelection },
+    state: { sorting, columnFilters, globalFilter, rowSelection, pagination },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     onRowSelectionChange: setRowSelection,
-    initialState: { pagination: { pageSize: defaultPageSize } },
+    onPaginationChange: updater => {
+      const next = typeof updater === 'function' ? updater(pagination) : updater;
+      setPagination(next);
+      onPageChange?.(next.pageIndex);
+    },
   });
 
   const { pageIndex, pageSize } = table.getState().pagination;
