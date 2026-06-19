@@ -10,7 +10,10 @@ import './layout.css';
 
 const NAV = [
   { label: 'Panel Principal', icon: LayoutDashboard, to: '/' },
-  { label: 'Remitos',         icon: Truck,           to: '/remitos' },
+  { label: 'Remitos', icon: Truck, prefix: '/remitos', children: [
+    { label: 'Carga de Remito',   to: '/remitos/nuevo'    },
+    { label: 'Consulta',          to: '/remitos/consulta' },
+  ]},
   {
     label: 'Entidades', icon: Package, children: [
       { label: 'Productos',  to: '/products'   },
@@ -30,12 +33,13 @@ const NAV = [
 
 const NavItem = ({ item, collapsed }) => {
   const location = useLocation();
+  const matchesPrefix = item.prefix && location.pathname.startsWith(item.prefix);
   const [open, setOpen] = useState(() =>
-    item.children?.some(c => location.pathname === c.to)
+    item.children?.some(c => location.pathname === c.to) || !!matchesPrefix
   );
 
   if (item.children) {
-    const active = item.children.some(c => location.pathname === c.to);
+    const active = item.children.some(c => location.pathname === c.to) || !!matchesPrefix;
     return (
       <div className={`nav-group ${open ? 'open' : ''}`}>
         <button

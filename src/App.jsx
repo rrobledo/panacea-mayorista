@@ -9,6 +9,8 @@ import { ProductsPage } from './pages/ProductsPage';
 import { MasterDetailPage, ComplexFormPage } from './pages/FormPages';
 import { PrintableReportPage } from './pages/PrintableReportPage';
 import { RemitosPage } from './pages/RemitosPage';
+import { RemitosListPage } from './pages/RemitosListPage';
+import { RemitoDetailPage } from './pages/RemitoDetailPage';
 import { PageLoader } from './components/ui';
 import './index.css';
 
@@ -46,7 +48,9 @@ function App() {
                 <AppLayout>
                   <Routes>
                     <Route path="/"                    element={<DashboardPage />} />
-                    <Route path="/remitos"             element={<RemitosPage />} />
+                    <Route path="/remitos/nuevo"       element={<RemitosPage />} />
+                    <Route path="/remitos/consulta"    element={<RemitosListPage />} />
+                    <Route path="/remitos/:id"         element={<RemitoDetailPage />} />
                     <Route path="/charts"              element={<ChartsPage />} />
                     <Route path="/products"            element={<ProductsPage />} />
                     <Route path="/orders"              element={<Placeholder title="Pedidos" />} />
