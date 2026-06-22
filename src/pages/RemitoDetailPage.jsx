@@ -79,7 +79,6 @@ const RemitoCopy = ({ label, remito, productos, vendedor, fechaEntrega, observac
           <th style={th}>Producto</th>
           <th style={{ ...th, textAlign: 'right', width: 45 }}>Cant.</th>
           <th style={{ ...th, textAlign: 'right', width: 60 }}>Entregado</th>
-          <th style={{ ...th, textAlign: 'right', width: 70 }}>P. Unit.</th>
         </tr>
       </thead>
       <tbody>
@@ -88,7 +87,6 @@ const RemitoCopy = ({ label, remito, productos, vendedor, fechaEntrega, observac
             <td style={td}>{p.nombre}</td>
             <td style={{ ...td, textAlign: 'right' }}>{p.cantidad}</td>
             <td style={{ ...td, textAlign: 'right' }}>{p.entregado ?? 0}</td>
-            <td style={{ ...td, textAlign: 'right' }}>{fmt(p.precio_actual)}</td>
           </tr>
         ))}
       </tbody>
