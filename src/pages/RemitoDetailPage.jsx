@@ -31,7 +31,7 @@ const detalleToProducto = (d) => ({
 const th = { padding: '5px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#444', background: '#f0f0f0', borderBottom: '1px solid #bbb', textAlign: 'left' };
 const td = { padding: '5px 8px', fontSize: 11, borderBottom: '1px solid #eee', verticalAlign: 'top' };
 
-const RemitoCopy = ({ label, remito, productos, vendedor, fechaEntrega, observaciones, nombreCliente, totalEstimado }) => (
+const RemitoCopy = ({ label, remito, productos, vendedor, fechaEntrega, observaciones, nombreCliente }) => (
   <div style={{ flex: 1, fontFamily: 'Arial, sans-serif', fontSize: 11, color: '#111' }}>
     {/* Header */}
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #111', paddingBottom: 8, marginBottom: 10 }}>
@@ -80,7 +80,6 @@ const RemitoCopy = ({ label, remito, productos, vendedor, fechaEntrega, observac
           <th style={{ ...th, textAlign: 'right', width: 45 }}>Cant.</th>
           <th style={{ ...th, textAlign: 'right', width: 60 }}>Entregado</th>
           <th style={{ ...th, textAlign: 'right', width: 70 }}>P. Unit.</th>
-          <th style={{ ...th, textAlign: 'right', width: 72 }}>Subtotal</th>
         </tr>
       </thead>
       <tbody>
@@ -90,16 +89,9 @@ const RemitoCopy = ({ label, remito, productos, vendedor, fechaEntrega, observac
             <td style={{ ...td, textAlign: 'right' }}>{p.cantidad}</td>
             <td style={{ ...td, textAlign: 'right' }}>{p.entregado ?? 0}</td>
             <td style={{ ...td, textAlign: 'right' }}>{fmt(p.precio_actual)}</td>
-            <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>{fmt(p.precio_actual * p.cantidad)}</td>
           </tr>
         ))}
       </tbody>
-      <tfoot>
-        <tr>
-          <td colSpan={4} style={{ ...td, fontWeight: 700, textAlign: 'right', borderTop: '1px solid #555', fontSize: 11 }}>TOTAL ESTIMADO</td>
-          <td style={{ ...td, fontWeight: 700, textAlign: 'right', borderTop: '1px solid #555', fontSize: 12 }}>{fmt(totalEstimado)}</td>
-        </tr>
-      </tfoot>
     </table>
 
     {/* Observaciones */}
@@ -110,12 +102,8 @@ const RemitoCopy = ({ label, remito, productos, vendedor, fechaEntrega, observac
     )}
 
     {/* Firma */}
-    <div style={{ display: 'flex', gap: 16, marginTop: 18 }}>
-      {['Firma cliente', 'Aclaración', 'DNI'].map(label => (
-        <div key={label} style={{ flex: 1, textAlign: 'center' }}>
-          <div style={{ borderTop: '1px solid #555', paddingTop: 4, fontSize: 9, color: '#666' }}>{label}</div>
-        </div>
-      ))}
+    <div style={{ marginTop: 48, maxWidth: 200 }}>
+      <div style={{ borderTop: '1px solid #555', paddingTop: 4, fontSize: 9, color: '#666' }}>Firma cliente</div>
     </div>
   </div>
 );
