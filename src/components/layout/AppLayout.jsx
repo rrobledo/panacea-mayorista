@@ -23,9 +23,10 @@ const NAV = [
   },
   { label: 'Gráficos',  icon: BarChart2,     to: '/charts'   },
   { label: 'Reportes',  icon: FileText,      children: [
-    { label: 'Grilla de datos',  to: '/reports/grid'      },
-    { label: 'Generador',        to: '/reports/builder'   },
-    { label: 'Imprimible',       to: '/reports/printable' },
+    { label: 'Grilla de datos',    to: '/reports/grid'        },
+    { label: 'Generador',          to: '/reports/builder'     },
+    { label: 'Imprimible',         to: '/reports/printable'   },
+    { label: 'Pendientes por Día', to: '/reports/pendientes'  },
   ]},
   { label: 'Usuarios',      icon: Users,    to: '/users'    },
   { label: 'Configuración', icon: Settings, to: '/settings' },

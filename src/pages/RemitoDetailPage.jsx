@@ -134,7 +134,7 @@ export const RemitoDetailPage = () => {
       {/* Header */}
       <div className="page-header">
         <div className="page-header-left" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button className="btn btn-ghost btn-icon" onClick={() => navigate('/remitos/consulta')}>
+          <button className="btn btn-ghost btn-icon" onClick={() => navigate(-1)}>
             <ArrowLeft size={18} />
           </button>
           <div>

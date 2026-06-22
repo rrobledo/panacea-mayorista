@@ -11,6 +11,7 @@ import { PrintableReportPage } from './pages/PrintableReportPage';
 import { RemitosPage } from './pages/RemitosPage';
 import { RemitosListPage } from './pages/RemitosListPage';
 import { RemitoDetailPage } from './pages/RemitoDetailPage';
+import { PendientesPorDiaPage } from './pages/PendientesPorDiaPage';
 import { PageLoader } from './components/ui';
 import './index.css';
 
@@ -61,6 +62,7 @@ function App() {
                     <Route path="/reports/grid"        element={<Placeholder title="Grilla de Datos" />} />
                     <Route path="/reports/builder"     element={<Placeholder title="Generador de Reportes" />} />
                     <Route path="/reports/printable"   element={<PrintableReportPage />} />
+                    <Route path="/reports/pendientes" element={<PendientesPorDiaPage />} />
                     <Route path="/settings"            element={<Placeholder title="Configuración" />} />
                     <Route path="/settings/profile"    element={<ComplexFormPage />} />
                     <Route path="*"                    element={<Placeholder title="404 – Página no encontrada" />} />
