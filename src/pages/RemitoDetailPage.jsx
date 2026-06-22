@@ -86,7 +86,7 @@ const RemitoCopy = ({ label, remito, productos, vendedor, fechaEntrega, observac
           <tr key={p.id}>
             <td style={td}>{p.nombre}</td>
             <td style={{ ...td, textAlign: 'right' }}>{p.cantidad}</td>
-            <td style={{ ...td, textAlign: 'right' }}>{p.entregado ?? 0}</td>
+            <td style={{ ...td, textAlign: 'right' }}>{p.entregado || ''}</td>
           </tr>
         ))}
       </tbody>
