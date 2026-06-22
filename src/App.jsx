@@ -13,6 +13,7 @@ import { RemitosListPage } from './pages/RemitosListPage';
 import { RemitoDetailPage } from './pages/RemitoDetailPage';
 import { PendientesPorDiaPage } from './pages/PendientesPorDiaPage';
 import { ProductosPendientesPorDiaPage } from './pages/ProductosPendientesPorDiaPage';
+import { ClientesPage } from './pages/ClientesPage';
 import { PageLoader } from './components/ui';
 import './index.css';
 
@@ -56,7 +57,7 @@ function App() {
                     <Route path="/charts"              element={<ChartsPage />} />
                     <Route path="/products"            element={<ProductsPage />} />
                     <Route path="/orders"              element={<Placeholder title="Pedidos" />} />
-                    <Route path="/customers"           element={<Placeholder title="Clientes" />} />
+                    <Route path="/customers"           element={<ClientesPage />} />
                     <Route path="/users"               element={<Placeholder title="Usuarios" />} />
                     <Route path="/forms/master-detail" element={<MasterDetailPage />} />
                     <Route path="/forms/complex"       element={<ComplexFormPage />} />
