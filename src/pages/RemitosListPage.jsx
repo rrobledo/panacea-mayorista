@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, Eye } from 'lucide-react';
+import { Search, X, Eye, Trash2 } from 'lucide-react';
 import { DataGrid } from '../components/grid/DataGrid';
 import { ClientePopup } from '../components/remitos/ClientePopup';
 import { remitosService } from '../services/api';
 import { useToast } from '../context/ToastContext';
-import { InlineLoader } from '../components/ui';
+import { InlineLoader, ConfirmDialog } from '../components/ui';
 import {
   ESTADO_LABELS, ESTADO_BADGE_CLASS, ESTADO_FILTER_OPTIONS, formatDate,
 } from '../utils/remitosConfig';
@@ -22,7 +22,7 @@ const loadSaved = () => {
   } catch { return null; }
 };
 
-const buildColumns = (navigate) => [
+const buildColumns = (navigate, onDelete) => [
   { accessorKey: 'id',        header: '#',              size: 60 },
   {
     id: 'cliente',
@@ -57,14 +57,23 @@ const buildColumns = (navigate) => [
   {
     id: 'acciones',
     header: '',
-    size: 80,
+    size: 110,
     cell: ({ row }) => (
-      <button
-        className="btn btn-secondary btn-sm"
-        onClick={e => { e.stopPropagation(); navigate(`/remitos/${row.original.id}`); }}
-      >
-        <Eye size={13} /> Ver
-      </button>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <button
+          className="btn btn-secondary btn-sm"
+          onClick={e => { e.stopPropagation(); navigate(`/remitos/${row.original.id}`); }}
+        >
+          <Eye size={13} /> Ver
+        </button>
+        <button
+          className="btn btn-ghost btn-icon btn-sm"
+          onClick={e => { e.stopPropagation(); onDelete(row.original); }}
+          title="Eliminar"
+        >
+          <Trash2 size={13} color="var(--danger)" />
+        </button>
+      </div>
     ),
   },
 ];
@@ -82,6 +91,7 @@ export const RemitosListPage = () => {
   const [pageIndex, setPageIndex] = useState(saved?.pageIndex || 0);
   const [loading,  setLoading]  = useState(false);
   const [clientePopup, setClientePopup] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null); // remito to delete
 
   const persist = useCallback((overrides = {}) => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -129,10 +139,23 @@ export const RemitosListPage = () => {
     persist({ pageIndex: newPageIndex });
   }, [persist]);
 
+  const handleDelete = () => {
+    const remito = confirmDelete;
+    setConfirmDelete(null);
+    remitosService.remove(remito.id)
+      .then(() => {
+        const updated = remitos.filter(r => r.id !== remito.id);
+        setRemitos(updated);
+        persist({ remitos: updated });
+        toast.success(`Remito #${remito.id} eliminado`);
+      })
+      .catch(() => toast.error('Error al eliminar el remito'));
+  };
+
   const nombreCliente = (c) =>
     [c.nom1, c.nom2].filter(Boolean).join(' ') || `Cliente #${c.idcliente}`;
 
-  const columns = buildColumns(navigate);
+  const columns = buildColumns(navigate, setConfirmDelete);
 
   return (
     <div>
@@ -252,6 +275,17 @@ export const RemitosListPage = () => {
         open={clientePopup}
         onClose={() => setClientePopup(false)}
         onSelect={c => { setCliente(c); setClientePopup(false); }}
+      />
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={handleDelete}
+        variant="danger"
+        title="Eliminar remito"
+        message={confirmDelete
+          ? `¿Confirma eliminar el remito #${confirmDelete.id}? Esta acción no se puede deshacer.`
+          : ''}
       />
     </div>
   );
