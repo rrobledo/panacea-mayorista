@@ -1,6 +1,6 @@
 # Panacea Mayorista
 
-Frontend SPA para gestión de remitos de Panacea Mayorista (panadería sin gluten).
+Frontend SPA para gestión de remitos de Panacea Bakery Gluten Free (panadería sin gluten).
 
 ## Stack
 
@@ -72,11 +72,30 @@ El login usa **Google Identity Services (GIS)**. Al ingresar a la app se muestra
 
 No se requiere ningún token ni header adicional para consumir el backend — la autenticación es exclusivamente del lado del frontend.
 
-## Funcionalidades principales
+## Funcionalidades
+
+### Remitos
 
 | Ruta | Descripción |
 |---|---|
-| `/remitos/nuevo` | Carga de nuevo remito |
-| `/remitos/consulta` | Consulta y seguimiento de remitos con filtros |
-| `/remitos/:id` | Detalle y edición de un remito |
-| `/reports/pendientes` | Reporte de pendientes por día (vista semanal imprimible) |
+| `/remitos/nuevo` | Carga de nuevo remito: selección de cliente, productos, fecha de entrega y vendedor |
+| `/remitos/consulta` | Consulta de remitos con filtros por fecha, cliente y estado; permite eliminar remitos |
+| `/remitos/:id` | Detalle y edición de un remito: datos del cliente, productos con cantidad y entregado, cambio de estado, impresión |
+
+**Detalle de remito — impresión:** el botón "Imprimir" genera una hoja con dos copias (ORIGINAL y DUPLICADO) apiladas verticalmente, listas para imprimir en A4 y recortar.
+
+### Reportes
+
+| Ruta | Descripción |
+|---|---|
+| `/reports/pendientes` | Pendientes por día: tabla semanal de remitos pendientes por cliente y fecha de entrega; imprimible |
+| `/reports/productos-pendientes` | Productos pendientes por día: tabla semanal de unidades a producir por producto; clic en un día muestra el detalle agrupado por responsable, con opción de impresión |
+
+Ambos reportes cargan automáticamente la semana actual (lunes a domingo) y permiten cambiar el período.
+
+### Entidades
+
+| Ruta | Descripción |
+|---|---|
+| `/products` | Catálogo de productos con filtro "Solo habilitados" y búsqueda integrada |
+| `/customers` | Listado de clientes con filtro "Solo activos" y búsqueda integrada |
