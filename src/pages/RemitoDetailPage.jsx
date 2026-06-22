@@ -159,7 +159,6 @@ export const RemitoDetailPage = () => {
 
   const handleGuardar = async () => {
     if (!vendedor.trim()) { toast.error('El vendedor es requerido'); return; }
-    if (!fechaEntrega)    { toast.error('La fecha de entrega es requerida'); return; }
     if (productos.length === 0) { toast.error('Debe haber al menos un producto'); return; }
 
     setSaving(true);
@@ -167,7 +166,6 @@ export const RemitoDetailPage = () => {
       const res = await remitosService.update(id, {
         vendedor: vendedor.trim(),
         observaciones: observaciones.trim() || null,
-        fecha_entrega: `${fechaEntrega}T00:00:00`,
         detalles: productos.map(p => ({ producto_id: p.producto_id, cantidad: p.cantidad, entregado: p.entregado ?? 0 })),
       });
       setRemito(res.data);
@@ -280,12 +278,13 @@ export const RemitoDetailPage = () => {
             </div>
 
             {/* Fecha de entrega */}
-            <Field label="Fecha de Entrega" required>
+            <Field label="Fecha de Entrega">
               <input
                 type="date"
                 className="form-input"
                 value={fechaEntrega}
-                onChange={e => setFechaEntrega(e.target.value)}
+                readOnly
+                style={{ background: 'var(--gray-50)', color: 'var(--gray-500)', cursor: 'not-allowed' }}
               />
             </Field>
 
