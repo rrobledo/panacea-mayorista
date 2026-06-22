@@ -30,6 +30,8 @@ export const RemitosPage = () => {
   const nombreCliente = (c) =>
     [c.nom1, c.nom2].filter(Boolean).join(' ') || `Cliente #${c.idcliente}`;
 
+  const fechaEntregaMin = (() => { const d = new Date(); const dias = d.getHours() < 14 ? 2 : 3; d.setDate(d.getDate() + dias); return d.toISOString().split('T')[0]; })();
+
   const handleField = (field, value) => {
     setForm(f => ({ ...f, [field]: value }));
     if (errors[field]) setErrors(e => ({ ...e, [field]: null }));
@@ -172,8 +174,12 @@ export const RemitosPage = () => {
                 type="date"
                 className={`form-input${errors.fechaEntrega ? ' error' : ''}`}
                 value={form.fechaEntrega}
-                min={new Date().toISOString().split('T')[0]}
-                onChange={e => handleField('fechaEntrega', e.target.value)}
+                min={fechaEntregaMin}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val && val < fechaEntregaMin) return;
+                  handleField('fechaEntrega', val);
+                }}
               />
             </Field>
 
