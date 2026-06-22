@@ -256,6 +256,12 @@ tr:last-child td { border-bottom: none; }
 
 @page { size: landscape; margin: 1cm; }
 
+/* ===== REMITO PRINT ===== */
+@media print {
+  .remito-print-wrapper { display: flex !important; width: 100%; align-items: flex-start; }
+  .remito-print-divider { width: 1px; border-left: 2px dashed #bbb; margin: 0 18px; align-self: stretch; flex-shrink: 0; }
+}
+
 /* ===== DAY DETAIL MODAL PRINT ===== */
 .day-th-clickable:hover { background: var(--primary-light) !important; }
 

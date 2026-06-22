@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Save, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, ChevronRight, Printer } from 'lucide-react';
 import { remitosService } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { Field, PageLoader, ConfirmDialog } from '../components/ui';
@@ -25,6 +25,102 @@ const detalleToProducto = (d) => ({
   precio_actual:d.producto?.precio_actual|| 0,
   categoria:    d.producto?.categoria    || '',
 });
+
+// ── Printable copy component ──────────────────────────────────────────────────
+
+const th = { padding: '5px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#444', background: '#f0f0f0', borderBottom: '1px solid #bbb', textAlign: 'left' };
+const td = { padding: '5px 8px', fontSize: 11, borderBottom: '1px solid #eee', verticalAlign: 'top' };
+
+const RemitoCopy = ({ label, remito, productos, vendedor, fechaEntrega, observaciones, nombreCliente, totalEstimado }) => (
+  <div style={{ flex: 1, fontFamily: 'Arial, sans-serif', fontSize: 11, color: '#111' }}>
+    {/* Header */}
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #111', paddingBottom: 8, marginBottom: 10 }}>
+      <div>
+        <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: '0.04em' }}>PANACEA MAYORISTA</div>
+        <div style={{ fontSize: 9, color: '#666', marginTop: 2 }}>Panadería sin gluten</div>
+      </div>
+      <div style={{ textAlign: 'right' }}>
+        <div style={{ fontWeight: 700, fontSize: 13 }}>REMITO #{remito.id}</div>
+        <div style={{ display: 'inline-block', background: '#111', color: '#fff', fontWeight: 700, fontSize: 9, letterSpacing: '0.12em', padding: '2px 7px', marginTop: 4 }}>
+          {label}
+        </div>
+      </div>
+    </div>
+
+    {/* Info grid */}
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 20px', marginBottom: 10 }}>
+      <div>
+        <div style={{ fontSize: 9, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Cliente</div>
+        <div style={{ fontWeight: 700 }}>{nombreCliente}</div>
+        {remito.cliente?.cuit      && <div style={{ fontSize: 10, color: '#555' }}>CUIT: {remito.cliente.cuit}</div>}
+        {remito.cliente?.direccion && <div style={{ fontSize: 10, color: '#555' }}>{remito.cliente.direccion}{remito.cliente?.localidad ? `, ${remito.cliente.localidad}` : ''}</div>}
+        {(remito.cliente?.celular || remito.cliente?.tel1) && <div style={{ fontSize: 10, color: '#555' }}>Tel: {remito.cliente.celular || remito.cliente.tel1}</div>}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div>
+          <div style={{ fontSize: 9, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Fecha Entrega</div>
+          <div style={{ fontWeight: 700 }}>{formatDate(fechaEntrega)}</div>
+        </div>
+        <div>
+          <div style={{ fontSize: 9, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Vendedor</div>
+          <div>{vendedor || '—'}</div>
+        </div>
+        <div>
+          <div style={{ fontSize: 9, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Estado</div>
+          <div>{ESTADO_LABELS[remito.estado] || remito.estado}</div>
+        </div>
+      </div>
+    </div>
+
+    {/* Products table */}
+    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 8 }}>
+      <thead>
+        <tr>
+          <th style={th}>Producto</th>
+          <th style={{ ...th, textAlign: 'right', width: 45 }}>Cant.</th>
+          <th style={{ ...th, textAlign: 'right', width: 60 }}>Entregado</th>
+          <th style={{ ...th, textAlign: 'right', width: 70 }}>P. Unit.</th>
+          <th style={{ ...th, textAlign: 'right', width: 72 }}>Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        {productos.map(p => (
+          <tr key={p.id}>
+            <td style={td}>{p.nombre}</td>
+            <td style={{ ...td, textAlign: 'right' }}>{p.cantidad}</td>
+            <td style={{ ...td, textAlign: 'right' }}>{p.entregado ?? 0}</td>
+            <td style={{ ...td, textAlign: 'right' }}>{fmt(p.precio_actual)}</td>
+            <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>{fmt(p.precio_actual * p.cantidad)}</td>
+          </tr>
+        ))}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colSpan={4} style={{ ...td, fontWeight: 700, textAlign: 'right', borderTop: '1px solid #555', fontSize: 11 }}>TOTAL ESTIMADO</td>
+          <td style={{ ...td, fontWeight: 700, textAlign: 'right', borderTop: '1px solid #555', fontSize: 12 }}>{fmt(totalEstimado)}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    {/* Observaciones */}
+    {observaciones && (
+      <div style={{ fontSize: 10, color: '#555', marginBottom: 10, paddingTop: 4, borderTop: '1px solid #ddd' }}>
+        <strong>Obs.: </strong>{observaciones}
+      </div>
+    )}
+
+    {/* Firma */}
+    <div style={{ display: 'flex', gap: 16, marginTop: 18 }}>
+      {['Firma cliente', 'Aclaración', 'DNI'].map(label => (
+        <div key={label} style={{ flex: 1, textAlign: 'center' }}>
+          <div style={{ borderTop: '1px solid #555', paddingTop: 4, fontSize: 9, color: '#666' }}>{label}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 
 export const RemitoDetailPage = () => {
   const { id } = useParams();
@@ -132,6 +228,7 @@ export const RemitoDetailPage = () => {
 
   return (
     <div>
+      <div className="no-print">
       {/* Header */}
       <div className="page-header">
         <div className="page-header-left" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -151,6 +248,9 @@ export const RemitoDetailPage = () => {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary" onClick={() => window.print()}>
+            <Printer size={14} /> Imprimir
+          </button>
           {siguienteEstado && (
             <button
               className="btn btn-secondary"
@@ -335,6 +435,32 @@ export const RemitoDetailPage = () => {
         title="Cambiar estado"
         message={`¿Confirma avanzar el remito de "${ESTADO_LABELS[remito.estado]}" a "${ESTADO_LABELS[siguienteEstado]}"?`}
       />
+      </div> {/* end .no-print */}
+
+      {/* ── Print: two copies side by side ── */}
+      <div className="remito-print-wrapper" style={{ display: 'none' }}>
+        <RemitoCopy
+          label="ORIGINAL"
+          remito={remito}
+          productos={productos}
+          vendedor={vendedor}
+          fechaEntrega={fechaEntrega}
+          observaciones={observaciones}
+          nombreCliente={nombreCliente}
+          totalEstimado={totalEstimado}
+        />
+        <div className="remito-print-divider" />
+        <RemitoCopy
+          label="DUPLICADO"
+          remito={remito}
+          productos={productos}
+          vendedor={vendedor}
+          fechaEntrega={fechaEntrega}
+          observaciones={observaciones}
+          nombreCliente={nombreCliente}
+          totalEstimado={totalEstimado}
+        />
+      </div>
     </div>
   );
 };
