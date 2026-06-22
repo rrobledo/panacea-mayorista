@@ -258,8 +258,8 @@ tr:last-child td { border-bottom: none; }
 
 /* ===== REMITO PRINT ===== */
 @media print {
-  .remito-print-wrapper { display: flex !important; width: 100%; align-items: flex-start; }
-  .remito-print-divider { width: 1px; border-left: 2px dashed #bbb; margin: 0 18px; align-self: stretch; flex-shrink: 0; }
+  .remito-print-wrapper { display: flex !important; flex-direction: column; width: 100%; }
+  .remito-print-divider { height: 0; border-top: 2px dashed #bbb; margin: 16px 0; }
 }
 
 /* ===== DAY DETAIL MODAL PRINT ===== */

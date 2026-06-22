@@ -36,7 +36,7 @@ const RemitoCopy = ({ label, remito, productos, vendedor, fechaEntrega, observac
     {/* Header */}
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #111', paddingBottom: 8, marginBottom: 10 }}>
       <div>
-        <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: '0.04em' }}>PANACEA MAYORISTA</div>
+        <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: '0.04em' }}>PANACEA BAKERY GLUTEN FREE</div>
         <div style={{ fontSize: 9, color: '#666', marginTop: 2 }}>Panadería sin gluten</div>
       </div>
       <div style={{ textAlign: 'right' }}>
