@@ -14,6 +14,14 @@ const NAV = [
     { label: 'Carga de Remito',   to: '/remitos/nuevo'    },
     { label: 'Consulta',          to: '/remitos/consulta' },
   ]},
+  // { label: 'Gráficos',  icon: BarChart2,     to: '/charts'   },
+  { label: 'Reportes',  icon: FileText,      children: [
+    // { label: 'Grilla de datos',    to: '/reports/grid'      },
+    // { label: 'Generador',          to: '/reports/builder'   },
+    // { label: 'Imprimible',         to: '/reports/printable' },
+    { label: 'Pendientes por Día',          to: '/reports/pendientes'           },
+    { label: 'Productos Pendientes x Día', to: '/reports/productos-pendientes' },
+  ]},
   {
     label: 'Entidades', icon: Package, children: [
       { label: 'Productos',  to: '/products'   },
@@ -21,14 +29,6 @@ const NAV = [
       { label: 'Clientes',   to: '/customers'  },
     ]
   },
-  { label: 'Gráficos',  icon: BarChart2,     to: '/charts'   },
-  { label: 'Reportes',  icon: FileText,      children: [
-    { label: 'Grilla de datos',    to: '/reports/grid'        },
-    { label: 'Generador',          to: '/reports/builder'     },
-    { label: 'Imprimible',         to: '/reports/printable'   },
-    { label: 'Pendientes por Día',          to: '/reports/pendientes'           },
-    { label: 'Productos Pendientes x Día', to: '/reports/productos-pendientes' },
-  ]},
   { label: 'Usuarios',      icon: Users,    to: '/users'    },
   { label: 'Configuración', icon: Settings, to: '/settings' },
 ];
