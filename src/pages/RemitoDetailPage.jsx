@@ -18,6 +18,7 @@ const detalleToProducto = (d) => ({
   id:           d.producto_id,
   producto_id:  d.producto_id,
   cantidad:     d.cantidad,
+  entregado:    d.entregado ?? 0,
   nombre:       d.producto?.nombre       || `Producto #${d.producto_id}`,
   codigo:       d.producto?.codigo       || '—',
   unidad_medida:d.producto?.unidad_medida|| '',
@@ -67,7 +68,7 @@ export const RemitoDetailPage = () => {
         next[idx] = { ...next[idx], cantidad: next[idx].cantidad + cantidad };
         return next;
       }
-      return [...prev, { ...producto, id: producto.id, producto_id: producto.id, cantidad }];
+      return [...prev, { ...producto, id: producto.id, producto_id: producto.id, cantidad, entregado: 0 }];
     });
     setProductoPopup(false);
   };
@@ -85,7 +86,7 @@ export const RemitoDetailPage = () => {
         vendedor: vendedor.trim(),
         observaciones: observaciones.trim() || null,
         fecha_entrega: `${fechaEntrega}T00:00:00`,
-        detalles: productos.map(p => ({ producto_id: p.producto_id, cantidad: p.cantidad })),
+        detalles: productos.map(p => ({ producto_id: p.producto_id, cantidad: p.cantidad, entregado: p.entregado ?? 0 })),
       });
       setRemito(res.data);
       setProductos(res.data.detalles.map(detalleToProducto));
@@ -260,7 +261,7 @@ export const RemitoDetailPage = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                 <thead>
                   <tr style={{ background: 'var(--gray-50)', borderBottom: '2px solid var(--gray-200)' }}>
-                    {['Código', 'Producto', 'Categoría', 'Unidad', 'Precio Unit.', 'Cantidad', 'Total', ''].map(h => (
+                    {['Código', 'Producto', 'Categoría', 'Unidad', 'Precio Unit.', 'Cantidad', 'Entregado', 'Total', ''].map(h => (
                       <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--gray-600)', fontSize: 12, whiteSpace: 'nowrap' }}>
                         {h}
                       </th>
@@ -275,14 +276,18 @@ export const RemitoDetailPage = () => {
                       <td style={{ padding: '10px 14px', color: 'var(--gray-500)' }}>{p.categoria}</td>
                       <td style={{ padding: '10px 14px', color: 'var(--gray-500)' }}>{p.unidad_medida}</td>
                       <td style={{ padding: '10px 14px' }}>{fmt(p.precio_actual)}</td>
+                      <td style={{ padding: '10px 14px', fontWeight: 500, color: 'var(--gray-700)' }}>
+                        {p.cantidad}
+                      </td>
                       <td style={{ padding: '10px 14px' }}>
                         <input
                           type="number"
-                          min={1}
-                          value={p.cantidad}
+                          min={0}
+                          max={p.cantidad}
+                          value={p.entregado ?? 0}
                           onChange={e => {
-                            const val = Math.max(1, parseInt(e.target.value) || 1);
-                            setProductos(prev => prev.map(x => x.id === p.id ? { ...x, cantidad: val } : x));
+                            const val = Math.min(p.cantidad, Math.max(0, parseInt(e.target.value) || 0));
+                            setProductos(prev => prev.map(x => x.id === p.id ? { ...x, entregado: val } : x));
                           }}
                           style={{ width: 70, padding: '4px 8px', border: '1px solid var(--gray-300)', borderRadius: 'var(--radius)', fontSize: 14 }}
                         />
