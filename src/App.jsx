@@ -61,11 +61,11 @@ function App() {
                     <Route path="/users"               element={<Placeholder title="Usuarios" />} />
                     <Route path="/forms/master-detail" element={<MasterDetailPage />} />
                     <Route path="/forms/complex"       element={<ComplexFormPage />} />
-                    <Route path="/reports/grid"        element={<Placeholder title="Grilla de Datos" />} />
-                    <Route path="/reports/builder"     element={<Placeholder title="Generador de Reportes" />} />
-                    <Route path="/reports/printable"   element={<PrintableReportPage />} />
-                    <Route path="/reports/pendientes"          element={<PendientesPorDiaPage />} />
-                    <Route path="/reports/productos-pendientes" element={<ProductosPendientesPorDiaPage />} />
+                    <Route path="/remitos-reportes/grid"        element={<Placeholder title="Grilla de Datos" />} />
+                    <Route path="/remitos-reportes/builder"     element={<Placeholder title="Generador de Reportes" />} />
+                    <Route path="/remitos-reportes/printable"   element={<PrintableReportPage />} />
+                    <Route path="/remitos-reportes/pendientes"          element={<PendientesPorDiaPage />} />
+                    <Route path="/remitos-reportes/productos-pendientes" element={<ProductosPendientesPorDiaPage />} />
                     <Route path="/settings"            element={<Placeholder title="Configuración" />} />
                     <Route path="/settings/profile"    element={<ComplexFormPage />} />
                     <Route path="*"                    element={<Placeholder title="404 – Página no encontrada" />} />

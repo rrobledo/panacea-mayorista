@@ -158,7 +158,7 @@ export const PendientesPorDiaPage = () => {
 
   const fetchReport = useCallback((d, h) => {
     setLoading(true);
-    api.get('/reports/pendientes-por-dia', { params: { fecha_desde: d, fecha_hasta: h } })
+    api.get('/remitos-reportes/pendientes-por-dia', { params: { fecha_desde: d, fecha_hasta: h } })
       .then(res => {
         setData(res.data);
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ desde: d, hasta: h, data: res.data }));

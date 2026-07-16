@@ -16,11 +16,11 @@ const NAV = [
   ]},
   // { label: 'Gráficos',  icon: BarChart2,     to: '/charts'   },
   { label: 'Reportes',  icon: FileText,      children: [
-    // { label: 'Grilla de datos',    to: '/reports/grid'      },
-    // { label: 'Generador',          to: '/reports/builder'   },
-    // { label: 'Imprimible',         to: '/reports/printable' },
-    { label: 'Pendientes por Día',          to: '/reports/pendientes'           },
-    { label: 'Productos Pendientes x Día', to: '/reports/productos-pendientes' },
+    // { label: 'Grilla de datos',    to: '/remitos-reportes/grid'      },
+    // { label: 'Generador',          to: '/remitos-reportes/builder'   },
+    // { label: 'Imprimible',         to: '/remitos-reportes/printable' },
+    { label: 'Pendientes por Día',          to: '/remitos-reportes/pendientes'           },
+    { label: 'Productos Pendientes x Día', to: '/remitos-reportes/productos-pendientes' },
   ]},
   {
     label: 'Entidades', icon: Package, children: [
