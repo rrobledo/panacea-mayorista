@@ -12,6 +12,15 @@ import {
 
 const fmt = (v) => `$${Number(v).toFixed(2)}`;
 
+// Orden del historial de estados: cada uno con el campo de fecha que registra su cumplimiento
+const HISTORIAL_ESTADOS = [
+  { key: 'en_produccion',  fechaKey: 'fecha_preparacion' },
+  { key: 'preparando',     fechaKey: 'fecha_listo' },
+  { key: 'listo_entregar', fechaKey: 'fecha_despacho' },
+  { key: 'en_entrega',     fechaKey: 'fecha_recibido' },
+  { key: 'facturado',      fechaKey: 'fecha_facturacion' },
+];
+
 const toInputDate = (iso) => iso ? iso.split('T')[0] : '';
 
 const detalleToProducto = (d) => ({
@@ -28,45 +37,49 @@ const detalleToProducto = (d) => ({
 
 // ── Printable copy component ──────────────────────────────────────────────────
 
-const th = { padding: '5px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#444', background: '#f0f0f0', borderBottom: '1px solid #bbb', textAlign: 'left' };
-const td = { padding: '5px 8px', fontSize: 11, borderBottom: '1px solid #eee', verticalAlign: 'top' };
+const th = { padding: '6px 9px', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: '#444', background: '#f0f0f0', borderBottom: '1px solid #bbb', textAlign: 'left' };
+const td = { padding: '6px 9px', fontSize: 14, borderBottom: '1px solid #eee', verticalAlign: 'top' };
 
-const RemitoCopy = ({ label, remito, productos, vendedor, fechaEntrega, observaciones, nombreCliente }) => (
-  <div style={{ flex: 1, fontFamily: 'Arial, sans-serif', fontSize: 11, color: '#111' }}>
+// Estados en los que la impresión muestra la cantidad entregada en lugar de la cantidad pedida
+const ESTADOS_IMPRIME_ENTREGADO = ['listo_entregar', 'en_entrega'];
+
+const RemitoCopy = ({ remito, productos, vendedor, fechaEntrega, observaciones, nombreCliente }) => {
+  const mostrarAmbasColumnas = remito.estado === 'facturado';
+  const mostrarEntregado = ESTADOS_IMPRIME_ENTREGADO.includes(remito.estado);
+
+  return (
+  <div style={{ flex: 1, fontFamily: 'Arial, sans-serif', fontSize: 14, color: '#111' }}>
     {/* Header */}
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #111', paddingBottom: 8, marginBottom: 10 }}>
       <div>
-        <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: '0.04em' }}>PANACEA BAKERY GLUTEN FREE</div>
-        <div style={{ fontSize: 9, color: '#666', marginTop: 2 }}>Panadería sin gluten</div>
+        <div style={{ fontWeight: 800, fontSize: 19, letterSpacing: '0.04em' }}>PANACEA BAKERY GLUTEN FREE</div>
+        <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>Panadería sin gluten</div>
       </div>
       <div style={{ textAlign: 'right' }}>
-        <div style={{ fontWeight: 700, fontSize: 13 }}>REMITO #{remito.id}</div>
-        <div style={{ display: 'inline-block', background: '#111', color: '#fff', fontWeight: 700, fontSize: 9, letterSpacing: '0.12em', padding: '2px 7px', marginTop: 4 }}>
-          {label}
-        </div>
+        <div style={{ fontWeight: 700, fontSize: 17 }}>REMITO #{remito.id}</div>
       </div>
     </div>
 
     {/* Info grid */}
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 20px', marginBottom: 10 }}>
       <div>
-        <div style={{ fontSize: 9, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Cliente</div>
+        <div style={{ fontSize: 12, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Cliente</div>
         <div style={{ fontWeight: 700 }}>{nombreCliente}</div>
-        {remito.cliente?.cuit      && <div style={{ fontSize: 10, color: '#555' }}>CUIT: {remito.cliente.cuit}</div>}
-        {remito.cliente?.direccion && <div style={{ fontSize: 10, color: '#555' }}>{remito.cliente.direccion}{remito.cliente?.localidad ? `, ${remito.cliente.localidad}` : ''}</div>}
-        {(remito.cliente?.celular || remito.cliente?.tel1) && <div style={{ fontSize: 10, color: '#555' }}>Tel: {remito.cliente.celular || remito.cliente.tel1}</div>}
+        {remito.cliente?.cuit      && <div style={{ fontSize: 13, color: '#555' }}>CUIT: {remito.cliente.cuit}</div>}
+        {remito.cliente?.direccion && <div style={{ fontSize: 13, color: '#555' }}>{remito.cliente.direccion}{remito.cliente?.localidad ? `, ${remito.cliente.localidad}` : ''}</div>}
+        {(remito.cliente?.celular || remito.cliente?.tel1) && <div style={{ fontSize: 13, color: '#555' }}>Tel: {remito.cliente.celular || remito.cliente.tel1}</div>}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div>
-          <div style={{ fontSize: 9, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Fecha Entrega</div>
+          <div style={{ fontSize: 12, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Fecha Entrega</div>
           <div style={{ fontWeight: 700 }}>{formatDate(fechaEntrega)}</div>
         </div>
         <div>
-          <div style={{ fontSize: 9, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Vendedor</div>
+          <div style={{ fontSize: 12, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Vendedor</div>
           <div>{vendedor || '—'}</div>
         </div>
         <div>
-          <div style={{ fontSize: 9, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Estado</div>
+          <div style={{ fontSize: 12, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Estado</div>
           <div>{ESTADO_LABELS[remito.estado] || remito.estado}</div>
         </div>
       </div>
@@ -77,16 +90,20 @@ const RemitoCopy = ({ label, remito, productos, vendedor, fechaEntrega, observac
       <thead>
         <tr>
           <th style={th}>Producto</th>
-          <th style={{ ...th, textAlign: 'right', width: 45 }}>Cant.</th>
-          <th style={{ ...th, textAlign: 'right', width: 60 }}>Entregado</th>
+          {mostrarAmbasColumnas && <th style={{ ...th, textAlign: 'right', width: 55 }}>Cant.</th>}
+          <th style={{ ...th, textAlign: 'right', width: 75 }}>{mostrarAmbasColumnas ? 'Entregado' : 'Cantidad'}</th>
         </tr>
       </thead>
       <tbody>
         {productos.map(p => (
           <tr key={p.id}>
             <td style={td}>{p.nombre}</td>
-            <td style={{ ...td, textAlign: 'right' }}>{p.cantidad}</td>
-            <td style={{ ...td, textAlign: 'right' }}>{p.entregado || ''}</td>
+            {mostrarAmbasColumnas && <td style={{ ...td, textAlign: 'right' }}>{p.cantidad}</td>}
+            <td style={{ ...td, textAlign: 'right' }}>
+              {mostrarAmbasColumnas
+                ? (p.entregado || '')
+                : (mostrarEntregado ? (p.entregado || '') : p.cantidad)}
+            </td>
           </tr>
         ))}
       </tbody>
@@ -94,17 +111,18 @@ const RemitoCopy = ({ label, remito, productos, vendedor, fechaEntrega, observac
 
     {/* Observaciones */}
     {observaciones && (
-      <div style={{ fontSize: 10, color: '#555', marginBottom: 10, paddingTop: 4, borderTop: '1px solid #ddd' }}>
+      <div style={{ fontSize: 13, color: '#555', marginBottom: 10, paddingTop: 4, borderTop: '1px solid #ddd' }}>
         <strong>Obs.: </strong>{observaciones}
       </div>
     )}
 
     {/* Firma */}
     <div style={{ marginTop: 48, maxWidth: 200 }}>
-      <div style={{ borderTop: '1px solid #555', paddingTop: 4, fontSize: 9, color: '#666' }}>Firma cliente</div>
+      <div style={{ borderTop: '1px solid #555', paddingTop: 4, fontSize: 12, color: '#666' }}>Firma cliente</div>
     </div>
   </div>
-);
+  );
+};
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
@@ -300,18 +318,26 @@ export const RemitoDetailPage = () => {
             </Field>
 
             {/* Fechas de estado (read-only info) */}
-            {(remito.fecha_preparacion || remito.fecha_listo || remito.fecha_despacho || remito.fecha_recibido || remito.fecha_facturacion) && (
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="form-label">Historial de estados</label>
-                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12, color: 'var(--gray-500)' }}>
-                  {remito.fecha_preparacion  && <span>En Preparación: {formatDate(remito.fecha_preparacion)}</span>}
-                  {remito.fecha_listo        && <span>Listo: {formatDate(remito.fecha_listo)}</span>}
-                  {remito.fecha_despacho     && <span>Despachado: {formatDate(remito.fecha_despacho)}</span>}
-                  {remito.fecha_recibido     && <span>Recibido: {formatDate(remito.fecha_recibido)}</span>}
-                  {remito.fecha_facturacion  && <span>Facturado: {formatDate(remito.fecha_facturacion)}</span>}
-                </div>
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <label className="form-label">Historial de estados</label>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {HISTORIAL_ESTADOS.map(({ key, fechaKey }) => {
+                  const fecha = remito[fechaKey];
+                  return (
+                    <div
+                      key={key}
+                      className={`badge ${ESTADO_BADGE_CLASS[key] || 'badge-gray'}`}
+                      style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2, padding: '6px 12px' }}
+                    >
+                      <span style={{ fontWeight: 700 }}>{ESTADO_LABELS[key]}</span>
+                      <span style={{ fontWeight: 400, fontSize: 11, opacity: fecha ? 0.9 : 0.7 }}>
+                        {fecha ? formatDate(fecha) : 'Pendiente'}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
-            )}
+            </div>
 
             {/* Observaciones */}
             <Field label="Observaciones" span={2}>
@@ -365,17 +391,21 @@ export const RemitoDetailPage = () => {
                         {p.cantidad}
                       </td>
                       <td style={{ padding: '10px 14px' }}>
-                        <input
-                          type="number"
-                          min={0}
-                          max={p.cantidad}
-                          value={p.entregado ?? 0}
-                          onChange={e => {
-                            const val = Math.min(p.cantidad, Math.max(0, parseInt(e.target.value) || 0));
-                            setProductos(prev => prev.map(x => x.id === p.id ? { ...x, entregado: val } : x));
-                          }}
-                          style={{ width: 70, padding: '4px 8px', border: '1px solid var(--gray-300)', borderRadius: 'var(--radius)', fontSize: 14 }}
-                        />
+                        {remito.estado === 'preparando' ? (
+                          <input
+                            type="number"
+                            min={0}
+                            max={p.cantidad}
+                            value={p.entregado ?? 0}
+                            onChange={e => {
+                              const val = Math.min(p.cantidad, Math.max(0, parseInt(e.target.value) || 0));
+                              setProductos(prev => prev.map(x => x.id === p.id ? { ...x, entregado: val } : x));
+                            }}
+                            style={{ width: 70, padding: '4px 8px', border: '1px solid var(--gray-300)', borderRadius: 'var(--radius)', fontSize: 14 }}
+                          />
+                        ) : (
+                          <span style={{ color: 'var(--gray-700)' }}>{p.entregado || '—'}</span>
+                        )}
                       </td>
                       <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--primary)' }}>
                         {fmt(p.precio_actual * p.cantidad)}
@@ -422,21 +452,9 @@ export const RemitoDetailPage = () => {
       />
       </div> {/* end .no-print */}
 
-      {/* ── Print: two copies side by side ── */}
+      {/* ── Print: single copy ── */}
       <div className="remito-print-wrapper" style={{ display: 'none' }}>
         <RemitoCopy
-          label="ORIGINAL"
-          remito={remito}
-          productos={productos}
-          vendedor={vendedor}
-          fechaEntrega={fechaEntrega}
-          observaciones={observaciones}
-          nombreCliente={nombreCliente}
-          totalEstimado={totalEstimado}
-        />
-        <div className="remito-print-divider" />
-        <RemitoCopy
-          label="DUPLICADO"
           remito={remito}
           productos={productos}
           vendedor={vendedor}
