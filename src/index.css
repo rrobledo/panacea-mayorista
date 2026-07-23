@@ -254,7 +254,7 @@ tr:last-child td { border-bottom: none; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
-@page { size: landscape; margin: 1cm; }
+@page { size: portrait; margin: 1cm; }
 
 /* ===== REMITO PRINT ===== */
 @media print {
