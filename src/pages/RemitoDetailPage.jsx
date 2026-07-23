@@ -95,8 +95,8 @@ const RemitoCopy = ({ remito, productos, vendedor, fechaEntrega, observaciones, 
         </tr>
       </thead>
       <tbody>
-        {productos.map(p => (
-          <tr key={p.id}>
+        {productos.map((p, i) => (
+          <tr key={p.id} style={{ background: i % 2 === 1 ? '#f3f3f3' : 'transparent' }}>
             <td style={td}>{p.nombre}</td>
             {mostrarAmbasColumnas && <td style={{ ...td, textAlign: 'right' }}>{p.cantidad}</td>}
             <td style={{ ...td, textAlign: 'right' }}>

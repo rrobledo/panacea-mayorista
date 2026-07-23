@@ -205,7 +205,10 @@ const DayDetailModal = ({ dayData, onClose }) => {
                     {resp.productos.map((p, pi) => (
                       <tr
                         key={p.producto}
-                        style={{ borderBottom: pi < resp.productos.length - 1 ? '1px solid var(--gray-100)' : 'none' }}
+                        style={{
+                          borderBottom: pi < resp.productos.length - 1 ? '1px solid var(--gray-100)' : 'none',
+                          background: pi % 2 === 1 ? 'var(--gray-50)' : 'transparent',
+                        }}
                       >
                         <td style={{ padding: '10px 12px', fontSize: 15 }}>{p.producto}</td>
                         <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: 17, fontWeight: 700, color: 'var(--gray-900)' }}>
