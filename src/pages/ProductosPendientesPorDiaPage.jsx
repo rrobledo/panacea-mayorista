@@ -93,7 +93,7 @@ const TH = ({ align = 'left', minWidth = 80, children, onClick }) => (
     onClick={onClick}
     style={{
       padding: '0', textAlign: align, fontWeight: 600,
-      color: 'var(--gray-600)', fontSize: 12, whiteSpace: 'nowrap',
+      color: 'var(--gray-600)', fontSize: 13, whiteSpace: 'nowrap',
       minWidth, verticalAlign: 'bottom', borderRight: '1px solid var(--gray-200)',
       cursor: onClick ? 'pointer' : 'default',
     }}
@@ -184,7 +184,7 @@ const DayDetailModal = ({ dayData, onClose }) => {
                   <thead>
                     <tr style={{ background: 'var(--gray-50)' }}>
                       <th style={{
-                        padding: '7px 12px', textAlign: 'left', fontSize: 11,
+                        padding: '7px 12px', textAlign: 'left', fontSize: 13,
                         fontWeight: 600, color: 'var(--gray-600)',
                         textTransform: 'uppercase', letterSpacing: '0.04em',
                         borderBottom: '1px solid var(--gray-200)',
@@ -192,7 +192,7 @@ const DayDetailModal = ({ dayData, onClose }) => {
                         Producto
                       </th>
                       <th style={{
-                        padding: '7px 12px', textAlign: 'right', fontSize: 11,
+                        padding: '7px 12px', textAlign: 'right', fontSize: 13,
                         fontWeight: 600, color: 'var(--gray-600)',
                         textTransform: 'uppercase', letterSpacing: '0.04em',
                         borderBottom: '1px solid var(--gray-200)', width: 90,
@@ -207,8 +207,8 @@ const DayDetailModal = ({ dayData, onClose }) => {
                         key={p.producto}
                         style={{ borderBottom: pi < resp.productos.length - 1 ? '1px solid var(--gray-100)' : 'none' }}
                       >
-                        <td style={{ padding: '10px 12px', fontSize: 14 }}>{p.producto}</td>
-                        <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: 16, fontWeight: 700, color: 'var(--gray-900)' }}>
+                        <td style={{ padding: '10px 12px', fontSize: 15 }}>{p.producto}</td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: 17, fontWeight: 700, color: 'var(--gray-900)' }}>
                           {p.cantidad}
                         </td>
                       </tr>
@@ -216,10 +216,10 @@ const DayDetailModal = ({ dayData, onClose }) => {
                   </tbody>
                   <tfoot>
                     <tr style={{ borderTop: '1px solid var(--gray-300)', background: 'var(--gray-50)' }}>
-                      <td style={{ padding: '7px 12px', fontSize: 12, fontWeight: 600, color: 'var(--gray-600)' }}>
+                      <td style={{ padding: '7px 12px', fontSize: 13, fontWeight: 600, color: 'var(--gray-600)' }}>
                         Total
                       </td>
-                      <td style={{ padding: '7px 12px', textAlign: 'right', fontSize: 14, fontWeight: 700, color: 'var(--primary)' }}>
+                      <td style={{ padding: '7px 12px', textAlign: 'right', fontSize: 15, fontWeight: 700, color: 'var(--primary)' }}>
                         {respTotal}
                       </td>
                     </tr>
@@ -351,7 +351,7 @@ export const ProductosPendientesPorDiaPage = () => {
                 </div>
 
                 <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                     <thead>
                       <tr style={{ background: 'var(--gray-50)', borderBottom: '2px solid var(--gray-200)' }}>
                         <TH minWidth={180}>Producto</TH>
@@ -374,7 +374,7 @@ export const ProductosPendientesPorDiaPage = () => {
                                 className={hasData ? 'day-th-clickable' : ''}
                               >
                                 <div style={{ fontWeight: 700 }}>{fmt.day}</div>
-                                <div style={{ fontSize: 11, fontWeight: 400 }}>{fmt.short}</div>
+                                <div style={{ fontSize: 12, fontWeight: 400 }}>{fmt.short}</div>
                                 {hasData && (
                                   <div className="no-print" style={{ fontSize: 9, marginTop: 3, opacity: 0.7 }}>
                                     ver detalle
@@ -392,7 +392,7 @@ export const ProductosPendientesPorDiaPage = () => {
                       <tr style={{ background: '#eef4ff', borderBottom: '2px solid var(--gray-200)' }}>
                         <TD bg="#eef4ff">
                           <span style={{
-                            fontWeight: 700, fontSize: 11, color: 'var(--primary)',
+                            fontWeight: 700, fontSize: 12, color: 'var(--primary)',
                             textTransform: 'uppercase', letterSpacing: '0.06em',
                           }}>
                             TOTALES
@@ -403,14 +403,14 @@ export const ProductosPendientesPorDiaPage = () => {
                           return (
                             <TD key={fecha} align="center" bg="#eef4ff" bold>
                               {total != null
-                                ? <span style={{ color: 'var(--primary)', fontSize: 15 }}>{total}</span>
+                                ? <span style={{ color: 'var(--primary)', fontSize: 16 }}>{total}</span>
                                 : <span style={{ color: 'var(--gray-200)' }}>—</span>
                               }
                             </TD>
                           );
                         })}
                         <TD align="center" bg="#dbeafe" bold>
-                          <span style={{ color: 'var(--primary)', fontSize: 15 }}>{grandTotal}</span>
+                          <span style={{ color: 'var(--primary)', fontSize: 16 }}>{grandTotal}</span>
                         </TD>
                       </tr>
 
@@ -434,7 +434,7 @@ export const ProductosPendientesPorDiaPage = () => {
                               return (
                                 <TD key={fecha} align="center">
                                   {qty != null
-                                    ? <span style={{ fontWeight: 600, fontSize: 14 }}>{qty}</span>
+                                    ? <span style={{ fontWeight: 600, fontSize: 15 }}>{qty}</span>
                                     : <span style={{ color: 'var(--gray-200)' }}>—</span>
                                   }
                                 </TD>

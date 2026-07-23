@@ -40,7 +40,7 @@ export const PrintableReport = ({ title, subtitle, data = [], columns = [], summ
         <style>{`
           @media print {
             @page { margin: 20mm; }
-            body { font-family: Arial, sans-serif; font-size: 11pt; }
+            body { font-family: Arial, sans-serif; font-size: 13pt; }
           }
         `}</style>
 
@@ -48,10 +48,10 @@ export const PrintableReport = ({ title, subtitle, data = [], columns = [], summ
         <div style={{ borderBottom: '2px solid var(--gray-900)', paddingBottom: 16, marginBottom: 24 }}>
           <div className="flex justify-between items-center">
             <div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--gray-900)' }}>{title}</div>
-              {subtitle && <div style={{ fontSize: 14, color: 'var(--gray-500)', marginTop: 4 }}>{subtitle}</div>}
+              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--gray-900)' }}>{title}</div>
+              {subtitle && <div style={{ fontSize: 16, color: 'var(--gray-500)', marginTop: 4 }}>{subtitle}</div>}
             </div>
-            <div style={{ textAlign: 'right', fontSize: 12, color: 'var(--gray-500)' }}>
+            <div style={{ textAlign: 'right', fontSize: 14, color: 'var(--gray-500)' }}>
               <div style={{ fontWeight: 600 }}>EnterpriseApp</div>
               <div>Generated: {now}</div>
             </div>
@@ -63,8 +63,8 @@ export const PrintableReport = ({ title, subtitle, data = [], columns = [], summ
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 16, marginBottom: 24 }}>
             {summary.map((s, i) => (
               <div key={i} style={{ padding: 16, border: '1px solid var(--gray-200)', borderRadius: 8, textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{s.label}</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--gray-900)' }}>{s.value}</div>
+                <div style={{ fontSize: 13, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{s.label}</div>
+                <div style={{ fontSize: 23, fontWeight: 700, color: 'var(--gray-900)' }}>{s.value}</div>
               </div>
             ))}
           </div>
@@ -75,13 +75,13 @@ export const PrintableReport = ({ title, subtitle, data = [], columns = [], summ
 
         {/* Data table */}
         {columns.length > 0 && (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ background: 'var(--gray-50)' }}>
                 {columns.map((c, i) => (
                   <th key={i} style={{
-                    padding: '8px 12px', textAlign: c.align || 'left',
-                    fontSize: 11, fontWeight: 700, color: 'var(--gray-600)',
+                    padding: '9px 12px', textAlign: c.align || 'left',
+                    fontSize: 13, fontWeight: 700, color: 'var(--gray-600)',
                     textTransform: 'uppercase', letterSpacing: '0.05em',
                     borderBottom: '2px solid var(--gray-200)',
                     width: c.width,
@@ -122,7 +122,7 @@ export const PrintableReport = ({ title, subtitle, data = [], columns = [], summ
         <div style={{
           marginTop: 40, paddingTop: 16,
           borderTop: '1px solid var(--gray-200)',
-          fontSize: 11, color: 'var(--gray-400)',
+          fontSize: 13, color: 'var(--gray-400)',
           display: 'flex', justifyContent: 'space-between',
         }}>
           <span>Confidential – {title}</span>

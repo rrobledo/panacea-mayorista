@@ -85,7 +85,7 @@ const nombreCliente = (c) =>
 const TH = ({ align = 'left', minWidth = 80, children }) => (
   <th style={{
     padding: '10px 10px', textAlign: align, fontWeight: 600,
-    color: 'var(--gray-600)', fontSize: 12, whiteSpace: 'nowrap',
+    color: 'var(--gray-600)', fontSize: 13, whiteSpace: 'nowrap',
     minWidth, verticalAlign: 'bottom', borderRight: '1px solid var(--gray-200)',
   }}>
     {children}
@@ -103,7 +103,7 @@ const TD = ({ align = 'left', bg, children }) => (
 );
 
 const DaySummary = ({ d }) => (
-  <div style={{ fontSize: 11, lineHeight: 1.9, minWidth: 100 }}>
+  <div style={{ fontSize: 12, lineHeight: 1.9, minWidth: 100 }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontWeight: 700, color: 'var(--gray-800)' }}>
       <span>Remitos:</span><span>{d.total_remitos}</span>
     </div>
@@ -137,8 +137,8 @@ const DaySummary = ({ d }) => (
 
 const StatBox = ({ label, value, color }) => (
   <div style={{ textAlign: 'center', minWidth: 72 }}>
-    <div style={{ fontSize: 28, fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
-    <div style={{ fontSize: 11, color: 'var(--gray-500)', marginTop: 4 }}>{label}</div>
+    <div style={{ fontSize: 30, fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
+    <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 4 }}>{label}</div>
   </div>
 );
 
@@ -271,7 +271,7 @@ export const PendientesPorDiaPage = () => {
               <span className="card-title">Distribución por día</span>
             </div>
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                 <thead>
                   <tr style={{ background: 'var(--gray-50)', borderBottom: '2px solid var(--gray-200)' }}>
                     <TH minWidth={160}>Cliente</TH>
@@ -283,7 +283,7 @@ export const PendientesPorDiaPage = () => {
                           <div style={{ fontWeight: 700, color: hasData ? 'var(--gray-800)' : 'var(--gray-300)' }}>
                             {day}
                           </div>
-                          <div style={{ fontSize: 11, fontWeight: 400, color: hasData ? 'var(--gray-500)' : 'var(--gray-300)' }}>
+                          <div style={{ fontSize: 12, fontWeight: 400, color: hasData ? 'var(--gray-500)' : 'var(--gray-300)' }}>
                             {short}
                           </div>
                         </TH>
@@ -296,7 +296,7 @@ export const PendientesPorDiaPage = () => {
                   <tr style={{ background: '#eef4ff', borderBottom: '2px solid var(--gray-200)' }}>
                     <TD bg="#eef4ff">
                       <span style={{
-                        fontWeight: 700, fontSize: 11, color: 'var(--primary)',
+                        fontWeight: 700, fontSize: 12, color: 'var(--primary)',
                         textTransform: 'uppercase', letterSpacing: '0.06em',
                       }}>
                         TOTALES
@@ -337,11 +337,11 @@ export const PendientesPorDiaPage = () => {
                         }}
                       >
                         <TD>
-                          <div style={{ fontWeight: 500, fontSize: 12, color: 'var(--gray-800)', lineHeight: 1.3 }}>
+                          <div style={{ fontWeight: 500, fontSize: 13, color: 'var(--gray-800)', lineHeight: 1.3 }}>
                             {nombreCliente(cliente)}
                           </div>
                           {cliente?.localidad && (
-                            <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 2 }}>
+                            <div style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 2 }}>
                               {cliente.localidad}
                             </div>
                           )}
@@ -381,7 +381,7 @@ export const PendientesPorDiaPage = () => {
                                         {/* Print: plain text */}
                                         <div
                                           className="print-only"
-                                          style={{ display: 'none', fontSize: 11, fontWeight: 600, color: 'var(--gray-700)' }}
+                                          style={{ display: 'none', fontSize: 12, fontWeight: 600, color: 'var(--gray-700)' }}
                                         >
                                           #{r.id} – {ESTADO_LABELS[r.estado] || r.estado}
                                         </div>
