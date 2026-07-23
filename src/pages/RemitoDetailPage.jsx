@@ -90,8 +90,8 @@ const RemitoCopy = ({ remito, productos, vendedor, fechaEntrega, observaciones, 
       <thead>
         <tr>
           <th style={th}>Producto</th>
-          {mostrarAmbasColumnas && <th style={{ ...th, textAlign: 'right', width: 55 }}>Cant.</th>}
-          <th style={{ ...th, textAlign: 'right', width: 75 }}>{mostrarAmbasColumnas ? 'Entregado' : 'Cantidad'}</th>
+          {mostrarAmbasColumnas && <th style={{ ...th, textAlign: 'right', width: 55 }}>Solicitado</th>}
+          <th style={{ ...th, textAlign: 'right', width: 75 }}>{mostrarAmbasColumnas ? 'Entregado' : (mostrarEntregado ? 'Entregado' : 'Solicitado')}</th>
         </tr>
       </thead>
       <tbody>
