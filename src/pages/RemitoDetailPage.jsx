@@ -453,6 +453,11 @@ export const RemitoDetailPage = () => {
       </div> {/* end .no-print */}
 
       {/* ── Print: single copy ── */}
+      <style>{`
+        @media print {
+          @page { size: portrait; margin: 1cm; }
+        }
+      `}</style>
       <div className="remito-print-wrapper" style={{ display: 'none' }}>
         <RemitoCopy
           remito={remito}
