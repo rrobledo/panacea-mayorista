@@ -1,33 +1,21 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, Save, ChevronRight, Printer } from 'lucide-react';
 import { remitosService } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { Field, PageLoader, ConfirmDialog } from '../components/ui';
 import { ProductoPopup } from '../components/remitos/ProductoPopup';
 import {
-  ESTADO_LABELS, ESTADO_BADGE_CLASS, NEXT_ESTADO, formatDate,
+  ESTADO_LABELS, ESTADO_BADGE_CLASS, NEXT_ESTADO, HISTORIAL_ESTADOS, TIPO_LABELS, formatDate,
 } from '../utils/remitosConfig';
 
 const fmt = (v) => `$${Number(v).toFixed(2)}`;
-
-// Orden del historial de estados: cada uno con el campo de fecha que registra su cumplimiento
-const HISTORIAL_ESTADOS = [
-  { key: 'en_produccion',  fechaKey: 'fecha_preparacion' },
-  { key: 'preparando',     fechaKey: 'fecha_listo' },
-  { key: 'listo_entregar', fechaKey: 'fecha_despacho' },
-  { key: 'en_entrega',     fechaKey: 'fecha_recibido' },
-  { key: 'facturado',      fechaKey: 'fecha_facturacion' },
-];
-
-const toInputDate = (iso) => iso ? iso.split('T')[0] : '';
 
 const detalleToProducto = (d) => ({
   id:           d.producto_id,
   producto_id:  d.producto_id,
   cantidad:     d.cantidad,
-  entregado:    d.entregado ?? 0,
   nombre:       d.producto?.nombre       || `Producto #${d.producto_id}`,
   codigo:       d.producto?.codigo       || '—',
   unidad_medida:d.producto?.unidad_medida|| '',
@@ -40,14 +28,7 @@ const detalleToProducto = (d) => ({
 const th = { padding: '6px 9px', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: '#444', background: '#f0f0f0', borderBottom: '1px solid #bbb', textAlign: 'left' };
 const td = { padding: '6px 9px', fontSize: 14, borderBottom: '1px solid #eee', verticalAlign: 'top' };
 
-// Estados en los que la impresión muestra la cantidad entregada en lugar de la cantidad pedida
-const ESTADOS_IMPRIME_ENTREGADO = ['listo_entregar', 'en_entrega'];
-
-const RemitoCopy = ({ remito, productos, vendedor, fechaEntrega, observaciones, nombreCliente }) => {
-  const mostrarAmbasColumnas = remito.estado === 'facturado';
-  const mostrarEntregado = ESTADOS_IMPRIME_ENTREGADO.includes(remito.estado);
-
-  return (
+const RemitoCopy = ({ remito, productos, vendedor, observaciones, nombreCliente }) => (
   <div style={{ flex: 1, fontFamily: 'Arial, sans-serif', fontSize: 14, color: '#111' }}>
     {/* Header */}
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #111', paddingBottom: 8, marginBottom: 10 }}>
@@ -63,16 +44,29 @@ const RemitoCopy = ({ remito, productos, vendedor, fechaEntrega, observaciones, 
     {/* Info grid */}
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 20px', marginBottom: 10 }}>
       <div>
-        <div style={{ fontSize: 12, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Cliente</div>
-        <div style={{ fontWeight: 700 }}>{nombreCliente}</div>
-        {remito.cliente?.cuit      && <div style={{ fontSize: 13, color: '#555' }}>CUIT: {remito.cliente.cuit}</div>}
-        {remito.cliente?.direccion && <div style={{ fontSize: 13, color: '#555' }}>{remito.cliente.direccion}{remito.cliente?.localidad ? `, ${remito.cliente.localidad}` : ''}</div>}
-        {(remito.cliente?.celular || remito.cliente?.tel1) && <div style={{ fontSize: 13, color: '#555' }}>Tel: {remito.cliente.celular || remito.cliente.tel1}</div>}
+        {remito.tipo === 'TRANSFERENCIA' ? (
+          <>
+            <div style={{ fontSize: 12, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Origen → Destino</div>
+            <div style={{ fontWeight: 700 }}>
+              {remito.origen_sucursal?.nombre  || `Sucursal #${remito.origen_sucursal_id}`}
+              {' → '}
+              {remito.destino_sucursal?.nombre || `Sucursal #${remito.destino_sucursal_id}`}
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 12, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Cliente</div>
+            <div style={{ fontWeight: 700 }}>{nombreCliente}</div>
+            {remito.cliente?.cuit      && <div style={{ fontSize: 13, color: '#555' }}>CUIT: {remito.cliente.cuit}</div>}
+            {remito.cliente?.direccion && <div style={{ fontSize: 13, color: '#555' }}>{remito.cliente.direccion}{remito.cliente?.localidad ? `, ${remito.cliente.localidad}` : ''}</div>}
+            {(remito.cliente?.celular || remito.cliente?.tel1) && <div style={{ fontSize: 13, color: '#555' }}>Tel: {remito.cliente.celular || remito.cliente.tel1}</div>}
+          </>
+        )}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div>
-          <div style={{ fontSize: 12, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Fecha Entrega</div>
-          <div style={{ fontWeight: 700 }}>{formatDate(fechaEntrega)}</div>
+          <div style={{ fontSize: 12, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Fecha Carga</div>
+          <div style={{ fontWeight: 700 }}>{formatDate(remito.fecha_carga)}</div>
         </div>
         <div>
           <div style={{ fontSize: 12, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Vendedor</div>
@@ -82,6 +76,12 @@ const RemitoCopy = ({ remito, productos, vendedor, fechaEntrega, observaciones, 
           <div style={{ fontSize: 12, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Estado</div>
           <div>{ESTADO_LABELS[remito.estado] || remito.estado}</div>
         </div>
+        {remito.pedido_id && (
+          <div>
+            <div style={{ fontSize: 12, color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Pedido de Origen</div>
+            <div>#{remito.pedido_id}</div>
+          </div>
+        )}
       </div>
     </div>
 
@@ -90,20 +90,14 @@ const RemitoCopy = ({ remito, productos, vendedor, fechaEntrega, observaciones, 
       <thead>
         <tr>
           <th style={th}>Producto</th>
-          {mostrarAmbasColumnas && <th style={{ ...th, textAlign: 'right', width: 55 }}>Solicitado</th>}
-          <th style={{ ...th, textAlign: 'right', width: 75 }}>{mostrarAmbasColumnas ? 'Entregado' : (mostrarEntregado ? 'Entregado' : 'Solicitado')}</th>
+          <th style={{ ...th, textAlign: 'right', width: 75 }}>Cantidad</th>
         </tr>
       </thead>
       <tbody>
         {productos.map((p, i) => (
           <tr key={p.id} style={{ background: i % 2 === 1 ? '#f3f3f3' : 'transparent' }}>
             <td style={td}>{p.nombre}</td>
-            {mostrarAmbasColumnas && <td style={{ ...td, textAlign: 'right' }}>{p.cantidad}</td>}
-            <td style={{ ...td, textAlign: 'right' }}>
-              {mostrarAmbasColumnas
-                ? (p.entregado || '')
-                : (mostrarEntregado ? (p.entregado || '') : p.cantidad)}
-            </td>
+            <td style={{ ...td, textAlign: 'right' }}>{p.cantidad}</td>
           </tr>
         ))}
       </tbody>
@@ -118,11 +112,10 @@ const RemitoCopy = ({ remito, productos, vendedor, fechaEntrega, observaciones, 
 
     {/* Firma */}
     <div style={{ marginTop: 48, maxWidth: 200 }}>
-      <div style={{ borderTop: '1px solid #555', paddingTop: 4, fontSize: 12, color: '#666' }}>Firma cliente</div>
+      <div style={{ borderTop: '1px solid #555', paddingTop: 4, fontSize: 12, color: '#666' }}>Firma receptor</div>
     </div>
   </div>
-  );
-};
+);
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
@@ -139,7 +132,6 @@ export const RemitoDetailPage = () => {
   // Editable form state
   const [vendedor, setVendedor]           = useState('');
   const [observaciones, setObservaciones] = useState('');
-  const [fechaEntrega, setFechaEntrega]   = useState('');
   const [productos, setProductos]         = useState([]);
   const [productoPopup, setProductoPopup] = useState(false);
   const [confirmTransicion, setConfirmTransicion] = useState(false);
@@ -152,7 +144,6 @@ export const RemitoDetailPage = () => {
         setRemito(r);
         setVendedor(r.vendedor || '');
         setObservaciones(r.observaciones || '');
-        setFechaEntrega(toInputDate(r.fecha_entrega));
         setProductos(r.detalles.map(detalleToProducto));
       })
       .catch(() => toast.error('No se pudo cargar el remito'))
@@ -168,7 +159,7 @@ export const RemitoDetailPage = () => {
         next[idx] = { ...next[idx], cantidad: next[idx].cantidad + cantidad };
         return next;
       }
-      return [...prev, { ...producto, id: producto.id, producto_id: producto.id, cantidad, entregado: 0 }];
+      return [...prev, { ...producto, id: producto.id, producto_id: producto.id, cantidad }];
     });
     setProductoPopup(false);
   };
@@ -184,7 +175,7 @@ export const RemitoDetailPage = () => {
       const res = await remitosService.update(id, {
         vendedor: vendedor.trim(),
         observaciones: observaciones.trim() || null,
-        detalles: productos.map(p => ({ producto_id: p.producto_id, cantidad: p.cantidad, entregado: p.entregado ?? 0 })),
+        detalles: productos.map(p => ({ producto_id: p.producto_id, cantidad: p.cantidad })),
       });
       setRemito(res.data);
       setProductos(res.data.detalles.map(detalleToProducto));
@@ -205,8 +196,9 @@ export const RemitoDetailPage = () => {
       const res = await remitosService.estado(id, siguiente);
       setRemito(res.data);
       toast.success(`Estado actualizado a: ${ESTADO_LABELS[siguiente]}`);
-    } catch {
-      toast.error('Error al cambiar el estado');
+    } catch (err) {
+      const msg = err.response?.data?.detail;
+      toast.error(typeof msg === 'string' ? msg : 'Error al cambiar el estado');
     } finally {
       setTransitioning(false);
       setConfirmTransicion(false);
@@ -222,8 +214,11 @@ export const RemitoDetailPage = () => {
     </div>
   );
 
+  const esListo = remito.estado === 'LISTO';
+  const esTransferencia = remito.tipo === 'TRANSFERENCIA';
+
   const nombreCliente = [remito.cliente?.nom1, remito.cliente?.nom2].filter(Boolean).join(' ')
-    || `Cliente #${remito.cliente_id}`;
+    || (remito.cliente_id ? `Cliente #${remito.cliente_id}` : '—');
 
   const siguienteEstado = NEXT_ESTADO[remito.estado];
   const totalEstimado = productos.reduce((acc, p) => acc + p.precio_actual * p.cantidad, 0);
@@ -240,12 +235,18 @@ export const RemitoDetailPage = () => {
           <div>
             <div className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               Remito #{remito.id}
+              <span className="badge badge-gray">{TIPO_LABELS[remito.tipo] || remito.tipo}</span>
               <span className={`badge ${ESTADO_BADGE_CLASS[remito.estado] || 'badge-gray'}`}>
                 {ESTADO_LABELS[remito.estado] || remito.estado}
               </span>
             </div>
             <div className="page-subtitle">
-              Cargado el {formatDate(remito.fecha_carga)} · {nombreCliente}
+              Cargado el {formatDate(remito.fecha_carga)}
+              {' · '}
+              {esTransferencia
+                ? `${remito.origen_sucursal?.nombre || `Sucursal #${remito.origen_sucursal_id}`} → ${remito.destino_sucursal?.nombre || `Sucursal #${remito.destino_sucursal_id}`}`
+                : nombreCliente}
+              {remito.pedido_id && <> · Generado desde <Link to={`/pedidos/${remito.pedido_id}`}>Pedido #{remito.pedido_id}</Link></>}
             </div>
           </div>
         </div>
@@ -265,12 +266,14 @@ export const RemitoDetailPage = () => {
               }
             </button>
           )}
-          <button className="btn btn-primary" onClick={handleGuardar} disabled={saving}>
-            {saving
-              ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Guardando…</>
-              : <><Save size={14} /> Guardar cambios</>
-            }
-          </button>
+          {esListo && (
+            <button className="btn btn-primary" onClick={handleGuardar} disabled={saving}>
+              {saving
+                ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Guardando…</>
+                : <><Save size={14} /> Guardar cambios</>
+              }
+            </button>
+          )}
         </div>
       </div>
 
@@ -280,31 +283,38 @@ export const RemitoDetailPage = () => {
         <div className="card-body">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
 
-            {/* Cliente (read-only) */}
-            <div className="form-group" style={{ gridColumn: 'span 2' }}>
-              <label className="form-label">Cliente</label>
-              <div style={{
-                padding: '8px 12px', background: 'var(--gray-50)',
-                border: '1px solid var(--gray-200)', borderRadius: 'var(--radius)',
-                fontSize: 14, color: 'var(--gray-700)',
-              }}>
-                <span style={{ fontWeight: 600 }}>{nombreCliente}</span>
-                {remito.cliente?.cuit     && <span style={{ marginLeft: 16, color: 'var(--gray-500)', fontSize: 12 }}>CUIT: {remito.cliente.cuit}</span>}
-                {remito.cliente?.direccion && <span style={{ marginLeft: 12, color: 'var(--gray-500)', fontSize: 12 }}>{remito.cliente.direccion}</span>}
-                {remito.cliente?.localidad && <span style={{ marginLeft: 12, color: 'var(--gray-500)', fontSize: 12 }}>{remito.cliente.localidad}</span>}
+            {esTransferencia ? (
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">Sucursales</label>
+                <div style={{
+                  padding: '8px 12px', background: 'var(--gray-50)',
+                  border: '1px solid var(--gray-200)', borderRadius: 'var(--radius)',
+                  fontSize: 14, color: 'var(--gray-700)',
+                }}>
+                  <span style={{ fontWeight: 600 }}>
+                    {remito.origen_sucursal?.nombre || `Sucursal #${remito.origen_sucursal_id}`}
+                  </span>
+                  {' → '}
+                  <span style={{ fontWeight: 600 }}>
+                    {remito.destino_sucursal?.nombre || `Sucursal #${remito.destino_sucursal_id}`}
+                  </span>
+                </div>
               </div>
-            </div>
-
-            {/* Fecha de entrega */}
-            <Field label="Fecha de Entrega">
-              <input
-                type="date"
-                className="form-input"
-                value={fechaEntrega}
-                readOnly
-                style={{ background: 'var(--gray-50)', color: 'var(--gray-500)', cursor: 'not-allowed' }}
-              />
-            </Field>
+            ) : (
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">Cliente</label>
+                <div style={{
+                  padding: '8px 12px', background: 'var(--gray-50)',
+                  border: '1px solid var(--gray-200)', borderRadius: 'var(--radius)',
+                  fontSize: 14, color: 'var(--gray-700)',
+                }}>
+                  <span style={{ fontWeight: 600 }}>{nombreCliente}</span>
+                  {remito.cliente?.cuit     && <span style={{ marginLeft: 16, color: 'var(--gray-500)', fontSize: 12 }}>CUIT: {remito.cliente.cuit}</span>}
+                  {remito.cliente?.direccion && <span style={{ marginLeft: 12, color: 'var(--gray-500)', fontSize: 12 }}>{remito.cliente.direccion}</span>}
+                  {remito.cliente?.localidad && <span style={{ marginLeft: 12, color: 'var(--gray-500)', fontSize: 12 }}>{remito.cliente.localidad}</span>}
+                </div>
+              </div>
+            )}
 
             {/* Vendedor */}
             <Field label="Vendedor" required>
@@ -314,6 +324,8 @@ export const RemitoDetailPage = () => {
                 value={vendedor}
                 onChange={e => setVendedor(e.target.value)}
                 placeholder="Nombre del vendedor"
+                readOnly={!esListo}
+                style={!esListo ? { background: 'var(--gray-50)', color: 'var(--gray-500)' } : undefined}
               />
             </Field>
 
@@ -347,6 +359,8 @@ export const RemitoDetailPage = () => {
                 onChange={e => setObservaciones(e.target.value)}
                 placeholder="Notas adicionales…"
                 rows={2}
+                readOnly={!esListo}
+                style={!esListo ? { background: 'var(--gray-50)', color: 'var(--gray-500)' } : undefined}
               />
             </Field>
           </div>
@@ -357,14 +371,16 @@ export const RemitoDetailPage = () => {
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
           <span className="card-title">Productos</span>
-          <button className="btn btn-primary btn-sm" onClick={() => setProductoPopup(true)}>
-            <Plus size={14} /> Agregar Producto
-          </button>
+          {esListo && (
+            <button className="btn btn-primary btn-sm" onClick={() => setProductoPopup(true)}>
+              <Plus size={14} /> Agregar Producto
+            </button>
+          )}
         </div>
 
         {productos.length === 0 ? (
           <div className="card-body" style={{ padding: 32, textAlign: 'center', color: 'var(--gray-400)', fontSize: 14 }}>
-            Sin productos. Use "Agregar Producto" para añadir.
+            Sin productos.
           </div>
         ) : (
           <>
@@ -372,7 +388,7 @@ export const RemitoDetailPage = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                 <thead>
                   <tr style={{ background: 'var(--gray-50)', borderBottom: '2px solid var(--gray-200)' }}>
-                    {['Código', 'Producto', 'Categoría', 'Unidad', 'Precio Unit.', 'Cantidad', 'Entregado', 'Total', ''].map(h => (
+                    {['Código', 'Producto', 'Categoría', 'Unidad', 'Precio Unit.', 'Cantidad', 'Total', ''].map(h => (
                       <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--gray-600)', fontSize: 12, whiteSpace: 'nowrap' }}>
                         {h}
                       </th>
@@ -387,37 +403,35 @@ export const RemitoDetailPage = () => {
                       <td style={{ padding: '10px 14px', color: 'var(--gray-500)' }}>{p.categoria}</td>
                       <td style={{ padding: '10px 14px', color: 'var(--gray-500)' }}>{p.unidad_medida}</td>
                       <td style={{ padding: '10px 14px' }}>{fmt(p.precio_actual)}</td>
-                      <td style={{ padding: '10px 14px', fontWeight: 500, color: 'var(--gray-700)' }}>
-                        {p.cantidad}
-                      </td>
                       <td style={{ padding: '10px 14px' }}>
-                        {remito.estado === 'preparando' ? (
+                        {esListo ? (
                           <input
                             type="number"
-                            min={0}
-                            max={p.cantidad}
-                            value={p.entregado ?? 0}
+                            min={1}
+                            value={p.cantidad}
                             onChange={e => {
-                              const val = Math.min(p.cantidad, Math.max(0, parseInt(e.target.value) || 0));
-                              setProductos(prev => prev.map(x => x.id === p.id ? { ...x, entregado: val } : x));
+                              const val = Math.max(1, parseInt(e.target.value) || 1);
+                              setProductos(prev => prev.map(x => x.id === p.id ? { ...x, cantidad: val } : x));
                             }}
                             style={{ width: 70, padding: '4px 8px', border: '1px solid var(--gray-300)', borderRadius: 'var(--radius)', fontSize: 14 }}
                           />
                         ) : (
-                          <span style={{ color: 'var(--gray-700)' }}>{p.entregado || '—'}</span>
+                          <span style={{ fontWeight: 500, color: 'var(--gray-700)' }}>{p.cantidad}</span>
                         )}
                       </td>
                       <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--primary)' }}>
                         {fmt(p.precio_actual * p.cantidad)}
                       </td>
                       <td style={{ padding: '10px 14px' }}>
-                        <button
-                          className="btn btn-ghost btn-icon btn-sm"
-                          onClick={() => handleEliminar(p.id)}
-                          title="Eliminar"
-                        >
-                          <Trash2 size={14} color="var(--danger)" />
-                        </button>
+                        {esListo && (
+                          <button
+                            className="btn btn-ghost btn-icon btn-sm"
+                            onClick={() => handleEliminar(p.id)}
+                            title="Eliminar"
+                          >
+                            <Trash2 size={14} color="var(--danger)" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -463,10 +477,8 @@ export const RemitoDetailPage = () => {
           remito={remito}
           productos={productos}
           vendedor={vendedor}
-          fechaEntrega={fechaEntrega}
           observaciones={observaciones}
           nombreCliente={nombreCliente}
-          totalEstimado={totalEstimado}
         />
       </div>
     </div>

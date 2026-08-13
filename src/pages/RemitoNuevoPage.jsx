@@ -6,19 +6,22 @@ import { remitosService } from '../services/api';
 import { Field } from '../components/ui';
 import { ClientePopup } from '../components/remitos/ClientePopup';
 import { ProductoPopup } from '../components/remitos/ProductoPopup';
+import { SucursalSelect } from '../components/remitos/SucursalSelect';
 
 const fmt = (v) => `$${Number(v).toFixed(2)}`;
 
 const initialForm = {
-  fechaEntrega: '',
   vendedor: '',
   observaciones: '',
+  origenSucursalId: '',
+  destinoSucursalId: '',
 };
 
-export const RemitosPage = () => {
+export const RemitoNuevoPage = () => {
   const { user } = useAuth();
   const toast = useToast();
 
+  const [tipo, setTipo]                     = useState('VENTA');
   const [cliente, setCliente]               = useState(null);
   const [productos, setProductos]           = useState([]);
   const [form, setForm]                     = useState({ ...initialForm, vendedor: user?.name || '' });
@@ -30,16 +33,16 @@ export const RemitosPage = () => {
   const nombreCliente = (c) =>
     [c.nom1, c.nom2].filter(Boolean).join(' ') || `Cliente #${c.idcliente}`;
 
-  const fechaEntregaMin = (() => { const d = new Date(); const dias = d.getHours() < 14 ? 2 : 3; d.setDate(d.getDate() + dias); return d.toISOString().split('T')[0]; })();
-
   const handleField = (field, value) => {
     setForm(f => ({ ...f, [field]: value }));
     if (errors[field]) setErrors(e => ({ ...e, [field]: null }));
   };
 
-  const handleClienteSelect = (c) => {
-    setCliente(c);
-    setClientePopup(false);
+  const handleTipoChange = (nuevoTipo) => {
+    setTipo(nuevoTipo);
+    setCliente(null);
+    setForm({ ...initialForm, vendedor: form.vendedor });
+    setErrors({});
   };
 
   const handleProductoAdd = (producto, cantidad) => {
@@ -59,35 +62,32 @@ export const RemitosPage = () => {
     setProductos(prev => prev.filter(p => p.id !== id));
   };
 
-  const validate = () => {
-    const errs = {};
-    if (!form.vendedor.trim()) errs.vendedor = 'El vendedor es requerido';
-    if (!form.fechaEntrega)    errs.fechaEntrega = 'La fecha de entrega es requerida';
-    return errs;
-  };
+  const sucursalesIguales = tipo === 'TRANSFERENCIA'
+    && form.origenSucursalId !== ''
+    && form.origenSucursalId === form.destinoSucursalId;
 
-  const canSubmit =
-    cliente !== null &&
-    productos.length > 0 &&
-    form.fechaEntrega !== '' &&
-    form.vendedor.trim() !== '' &&
-    !submitting;
+  const canSubmit = (() => {
+    if (submitting || productos.length === 0 || !form.vendedor.trim()) return false;
+    if (tipo === 'VENTA') return cliente !== null;
+    return form.origenSucursalId !== '' && form.destinoSucursalId !== '' && !sucursalesIguales;
+  })();
 
   const handleSubmit = async () => {
-    const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (!form.vendedor.trim()) { setErrors({ vendedor: 'El vendedor es requerido' }); return; }
 
     setSubmitting(true);
     try {
       const payload = {
+        tipo,
         vendedor: form.vendedor.trim(),
         observaciones: form.observaciones.trim() || null,
-        fecha_entrega: `${form.fechaEntrega}T00:00:00`,
-        cliente_id: cliente.idcliente,
         detalles: productos.map(p => ({
           producto_id: p.id,
           cantidad: p.cantidad,
         })),
+        ...(tipo === 'VENTA'
+          ? { cliente_id: cliente.idcliente }
+          : { origen_sucursal_id: Number(form.origenSucursalId), destino_sucursal_id: Number(form.destinoSucursalId) }),
       };
 
       const res = await remitosService.create(payload);
@@ -116,8 +116,29 @@ export const RemitosPage = () => {
     <div>
       <div className="page-header">
         <div className="page-header-left">
-          <div className="page-title">Carga de Remito</div>
-          <div className="page-subtitle">Registro de nueva nota de pedido</div>
+          <div className="page-title">Nuevo Remito</div>
+          <div className="page-subtitle">Venta directa o traslado entre sucursales</div>
+        </div>
+      </div>
+
+      {/* ── Tipo ── */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card-header"><span className="card-title">Tipo de Remito</span></div>
+        <div className="card-body">
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button
+              className={`btn ${tipo === 'VENTA' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => handleTipoChange('VENTA')}
+            >
+              Venta
+            </button>
+            <button
+              className={`btn ${tipo === 'TRANSFERENCIA' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => handleTipoChange('TRANSFERENCIA')}
+            >
+              Transferencia
+            </button>
+          </div>
         </div>
       </div>
 
@@ -129,59 +150,56 @@ export const RemitosPage = () => {
         <div className="card-body">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
 
-            {/* Cliente */}
-            <div className="form-group" style={{ gridColumn: 'span 2' }}>
-              <label className="form-label">
-                Cliente <span className="required">*</span>
-              </label>
-              {cliente ? (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '10px 14px', background: 'var(--primary-light)',
-                  border: '1px solid var(--primary)', borderRadius: 'var(--radius)',
-                }}>
-                  <UserCheck size={18} color="var(--primary)" style={{ flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, color: 'var(--gray-800)' }}>{nombreCliente(cliente)}</div>
-                    <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 2, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                      {cliente.cuit && <span>CUIT: {cliente.cuit}</span>}
-                      {cliente.direccion && <span>{cliente.direccion}</span>}
-                      {cliente.localidad && <span>{cliente.localidad}</span>}
-                      {cliente.tel1 && <span>Tel: {cliente.tel1}</span>}
+            {tipo === 'VENTA' ? (
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">
+                  Cliente <span className="required">*</span>
+                </label>
+                {cliente ? (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '10px 14px', background: 'var(--primary-light)',
+                    border: '1px solid var(--primary)', borderRadius: 'var(--radius)',
+                  }}>
+                    <UserCheck size={18} color="var(--primary)" style={{ flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, color: 'var(--gray-800)' }}>{nombreCliente(cliente)}</div>
+                      <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 2, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                        {cliente.cuit && <span>CUIT: {cliente.cuit}</span>}
+                        {cliente.direccion && <span>{cliente.direccion}</span>}
+                        {cliente.localidad && <span>{cliente.localidad}</span>}
+                      </div>
                     </div>
+                    <button className="btn btn-secondary btn-sm" onClick={() => setClientePopup(true)}>
+                      Cambiar
+                    </button>
                   </div>
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => setClientePopup(true)}
-                  >
-                    Cambiar
+                ) : (
+                  <button className="btn btn-secondary" onClick={() => setClientePopup(true)} style={{ alignSelf: 'flex-start' }}>
+                    <UserCheck size={14} /> Seleccionar Cliente
                   </button>
-                </div>
-              ) : (
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setClientePopup(true)}
-                  style={{ alignSelf: 'flex-start' }}
+                )}
+              </div>
+            ) : (
+              <>
+                <Field label="Sucursal Origen" required>
+                  <SucursalSelect
+                    value={form.origenSucursalId}
+                    onChange={v => handleField('origenSucursalId', v)}
+                  />
+                </Field>
+                <Field
+                  label="Sucursal Destino"
+                  required
+                  error={sucursalesIguales ? 'El destino debe ser distinto del origen' : undefined}
                 >
-                  <UserCheck size={14} /> Seleccionar Cliente
-                </button>
-              )}
-            </div>
-
-            {/* Fecha de entrega */}
-            <Field label="Fecha de Entrega" required error={errors.fechaEntrega}>
-              <input
-                type="date"
-                className={`form-input${errors.fechaEntrega ? ' error' : ''}`}
-                value={form.fechaEntrega}
-                min={fechaEntregaMin}
-                onChange={e => {
-                  const val = e.target.value;
-                  if (val && val < fechaEntregaMin) return;
-                  handleField('fechaEntrega', val);
-                }}
-              />
-            </Field>
+                  <SucursalSelect
+                    value={form.destinoSucursalId}
+                    onChange={v => handleField('destinoSucursalId', v)}
+                  />
+                </Field>
+              </>
+            )}
 
             {/* Vendedor */}
             <Field label="Vendedor" required error={errors.vendedor}>
@@ -212,10 +230,7 @@ export const RemitosPage = () => {
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
           <span className="card-title">Productos</span>
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() => setProductoPopup(true)}
-          >
+          <button className="btn btn-primary btn-sm" onClick={() => setProductoPopup(true)}>
             <Plus size={14} /> Agregar Producto
           </button>
         </div>
@@ -293,20 +308,8 @@ export const RemitosPage = () => {
         )}
       </div>
 
-      {/* ── Validación y envío ── */}
-      {(!cliente || productos.length === 0) && (
-        <div className="alert alert-warning" style={{ marginBottom: 16, fontSize: 13 }}>
-          {!cliente && <div>• Debe seleccionar un cliente</div>}
-          {productos.length === 0 && <div>• Debe agregar al menos un producto</div>}
-        </div>
-      )}
-
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button
-          className="btn btn-primary btn-lg"
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-        >
+        <button className="btn btn-primary btn-lg" onClick={handleSubmit} disabled={!canSubmit}>
           {submitting
             ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Registrando…</>
             : 'Registrar Remito'
@@ -317,7 +320,7 @@ export const RemitosPage = () => {
       <ClientePopup
         open={clientePopup}
         onClose={() => setClientePopup(false)}
-        onSelect={handleClienteSelect}
+        onSelect={c => { setCliente(c); setClientePopup(false); }}
       />
 
       <ProductoPopup

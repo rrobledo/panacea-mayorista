@@ -3,21 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { Search, X, Eye, Trash2 } from 'lucide-react';
 import { DataGrid } from '../components/grid/DataGrid';
 import { ClientePopup } from '../components/remitos/ClientePopup';
-import { SucursalSelect } from '../components/remitos/SucursalSelect';
-import { remitosService } from '../services/api';
+import { pedidosService } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { InlineLoader, ConfirmDialog } from '../components/ui';
 import {
-  ESTADO_LABELS, ESTADO_BADGE_CLASS, ESTADO_FILTER_OPTIONS,
-  TIPO_LABELS, TIPO_FILTER_OPTIONS, formatDate,
-} from '../utils/remitosConfig';
+  ESTADO_LABELS, ESTADO_BADGE_CLASS, ESTADO_FILTER_OPTIONS, formatDate,
+} from '../utils/pedidosConfig';
 
-const STORAGE_KEY = 'panacea_remitos_consulta';
+const STORAGE_KEY = 'panacea_pedidos_consulta';
 
-const initialFilters = {
-  fechaDesde: '', fechaHasta: '', estadoFilter: '', tipoFilter: '',
-  pedidoId: '', origenSucursalId: '', destinoSucursalId: '',
-};
+const initialFilters = { fechaDesde: '', fechaHasta: '', estadoFilter: '' };
 
 // Read persisted state synchronously so first render is already restored
 const loadSaved = () => {
@@ -27,34 +22,20 @@ const loadSaved = () => {
   } catch { return null; }
 };
 
-const nombreClienteOSucursales = (row) => {
-  if (row.tipo === 'TRANSFERENCIA') {
-    const origen  = row.origen_sucursal?.nombre  || `Sucursal #${row.origen_sucursal_id}`;
-    const destino = row.destino_sucursal?.nombre || `Sucursal #${row.destino_sucursal_id}`;
-    return `${origen} → ${destino}`;
-  }
-  return [row.cliente?.nom1, row.cliente?.nom2].filter(Boolean).join(' ') || `#${row.cliente_id}`;
-};
-
 const buildColumns = (navigate, onDelete) => [
   { accessorKey: 'id',        header: '#',              size: 60 },
   {
-    id: 'tipo',
-    header: 'Tipo',
-    size: 110,
-    accessorFn: row => TIPO_LABELS[row.tipo] || row.tipo,
+    id: 'cliente',
+    header: 'Cliente',
+    size: 200,
+    accessorFn: row =>
+      [row.cliente?.nom1, row.cliente?.nom2].filter(Boolean).join(' ') || `#${row.cliente_id}`,
   },
   {
-    id: 'cliente_sucursales',
-    header: 'Cliente / Sucursales',
-    size: 220,
-    accessorFn: nombreClienteOSucursales,
-  },
-  {
-    id: 'pedido_id',
-    header: 'Pedido',
-    size: 90,
-    accessorFn: row => row.pedido_id ? `#${row.pedido_id}` : '—',
+    id: 'fecha_entrega',
+    header: 'Fecha Entrega',
+    size: 130,
+    accessorFn: row => formatDate(row.fecha_entrega),
   },
   {
     id: 'fecha_carga',
@@ -74,10 +55,10 @@ const buildColumns = (navigate, onDelete) => [
     ),
   },
   {
-    id: 'fecha_recibido',
-    header: 'Fecha Recibido',
+    id: 'fecha_cancelado',
+    header: 'Fecha Cancelado',
     size: 130,
-    accessorFn: row => row.fecha_recibido ? formatDate(row.fecha_recibido) : '—',
+    accessorFn: row => row.fecha_cancelado ? formatDate(row.fecha_cancelado) : '—',
   },
   {
     id: 'acciones',
@@ -87,11 +68,11 @@ const buildColumns = (navigate, onDelete) => [
       <div style={{ display: 'flex', gap: 6 }}>
         <button
           className="btn btn-secondary btn-sm"
-          onClick={e => { e.stopPropagation(); navigate(`/remitos/${row.original.id}`); }}
+          onClick={e => { e.stopPropagation(); navigate(`/pedidos/${row.original.id}`); }}
         >
           <Eye size={13} /> Ver
         </button>
-        {row.original.estado === 'LISTO' && (
+        {row.original.estado === 'PENDIENTE' && (
           <button
             className="btn btn-ghost btn-icon btn-sm"
             onClick={e => { e.stopPropagation(); onDelete(row.original); }}
@@ -105,7 +86,7 @@ const buildColumns = (navigate, onDelete) => [
   },
 ];
 
-export const RemitosListPage = () => {
+export const PedidosListPage = () => {
   const navigate = useNavigate();
   const toast    = useToast();
 
@@ -113,51 +94,47 @@ export const RemitosListPage = () => {
   const [saved]  = useState(loadSaved);
   const [filters,  setFilters]  = useState(saved?.filters  || initialFilters);
   const [cliente,  setCliente]  = useState(saved?.cliente  || null);
-  const [remitos,  setRemitos]  = useState(saved?.remitos  || []);
+  const [pedidos,  setPedidos]  = useState(saved?.pedidos  || []);
   const [searched, setSearched] = useState(saved?.searched || false);
   const [pageIndex, setPageIndex] = useState(saved?.pageIndex || 0);
   const [loading,  setLoading]  = useState(false);
   const [clientePopup, setClientePopup] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(null); // remito to delete
+  const [confirmDelete, setConfirmDelete] = useState(null); // pedido to delete
 
   const persist = useCallback((overrides = {}) => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-      filters, cliente, remitos, searched, pageIndex,
+      filters, cliente, pedidos, searched, pageIndex,
       ...overrides,
     }));
-  }, [filters, cliente, remitos, searched, pageIndex]);
+  }, [filters, cliente, pedidos, searched, pageIndex]);
 
   const buscar = () => {
     setLoading(true);
     setSearched(true);
 
     const params = { limit: 500 };
-    if (filters.fechaDesde)        params.fecha_desde         = `${filters.fechaDesde}T00:00:00`;
-    if (filters.fechaHasta)        params.fecha_hasta         = `${filters.fechaHasta}T23:59:59`;
-    if (cliente)                   params.cliente_id          = cliente.idcliente;
-    if (filters.estadoFilter)      params.estado              = filters.estadoFilter;
-    if (filters.tipoFilter)        params.tipo                = filters.tipoFilter;
-    if (filters.pedidoId)          params.pedido_id           = filters.pedidoId;
-    if (filters.origenSucursalId)  params.origen_sucursal_id  = filters.origenSucursalId;
-    if (filters.destinoSucursalId) params.destino_sucursal_id = filters.destinoSucursalId;
+    if (filters.fechaDesde) params.fecha_desde = `${filters.fechaDesde}T00:00:00`;
+    if (filters.fechaHasta) params.fecha_hasta = `${filters.fechaHasta}T23:59:59`;
+    if (cliente)            params.cliente_id  = cliente.idcliente;
+    if (filters.estadoFilter) params.estado    = filters.estadoFilter;
 
-    remitosService.list(params)
+    pedidosService.list(params)
       .then(res => {
         const data = res.data;
-        setRemitos(data);
+        setPedidos(data);
         setPageIndex(0);
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-          filters, cliente, remitos: data, searched: true, pageIndex: 0,
+          filters, cliente, pedidos: data, searched: true, pageIndex: 0,
         }));
       })
-      .catch(() => toast.error('Error al consultar remitos'))
+      .catch(() => toast.error('Error al consultar pedidos'))
       .finally(() => setLoading(false));
   };
 
   const limpiar = () => {
     setFilters(initialFilters);
     setCliente(null);
-    setRemitos([]);
+    setPedidos([]);
     setSearched(false);
     setPageIndex(0);
     sessionStorage.removeItem(STORAGE_KEY);
@@ -169,16 +146,16 @@ export const RemitosListPage = () => {
   }, [persist]);
 
   const handleDelete = () => {
-    const remito = confirmDelete;
+    const pedido = confirmDelete;
     setConfirmDelete(null);
-    remitosService.remove(remito.id)
+    pedidosService.remove(pedido.id)
       .then(() => {
-        const updated = remitos.filter(r => r.id !== remito.id);
-        setRemitos(updated);
-        persist({ remitos: updated });
-        toast.success(`Remito #${remito.id} eliminado`);
+        const updated = pedidos.filter(p => p.id !== pedido.id);
+        setPedidos(updated);
+        persist({ pedidos: updated });
+        toast.success(`Pedido #${pedido.id} eliminado`);
       })
-      .catch(() => toast.error('Error al eliminar el remito'));
+      .catch(() => toast.error('Error al eliminar el pedido'));
   };
 
   const nombreCliente = (c) =>
@@ -190,8 +167,8 @@ export const RemitosListPage = () => {
     <div>
       <div className="page-header">
         <div className="page-header-left">
-          <div className="page-title">Consulta de Remitos</div>
-          <div className="page-subtitle">Búsqueda y seguimiento de remitos de venta y transferencia</div>
+          <div className="page-title">Consulta de Pedidos</div>
+          <div className="page-subtitle">Búsqueda y seguimiento de pedidos</div>
         </div>
       </div>
 
@@ -204,20 +181,7 @@ export const RemitosListPage = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, alignItems: 'end' }}>
 
             <div className="form-group">
-              <label className="form-label">Tipo</label>
-              <select
-                className="form-select"
-                value={filters.tipoFilter}
-                onChange={e => setFilters(f => ({ ...f, tipoFilter: e.target.value }))}
-              >
-                {TIPO_FILTER_OPTIONS.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Fecha Carga Desde</label>
+              <label className="form-label">Fecha Entrega Desde</label>
               <input
                 type="date"
                 className="form-input"
@@ -227,7 +191,7 @@ export const RemitosListPage = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Fecha Carga Hasta</label>
+              <label className="form-label">Fecha Entrega Hasta</label>
               <input
                 type="date"
                 className="form-input"
@@ -260,33 +224,6 @@ export const RemitosListPage = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Pedido #</label>
-              <input
-                type="number"
-                className="form-input"
-                value={filters.pedidoId}
-                onChange={e => setFilters(f => ({ ...f, pedidoId: e.target.value }))}
-                placeholder="Ej: 123"
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Sucursal Origen</label>
-              <SucursalSelect
-                value={filters.origenSucursalId}
-                onChange={v => setFilters(f => ({ ...f, origenSucursalId: v }))}
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Sucursal Destino</label>
-              <SucursalSelect
-                value={filters.destinoSucursalId}
-                onChange={v => setFilters(f => ({ ...f, destinoSucursalId: v }))}
-              />
-            </div>
-
-            <div className="form-group">
               <label className="form-label">Estado</label>
               <select
                 className="form-select"
@@ -313,15 +250,15 @@ export const RemitosListPage = () => {
       </div>
 
       {/* ── Resultados ── */}
-      {loading && <InlineLoader text="Consultando remitos…" />}
+      {loading && <InlineLoader text="Consultando pedidos…" />}
 
       {!loading && searched && (
         <DataGrid
-          title={`Resultados — ${remitos.length} remito${remitos.length !== 1 ? 's' : ''}`}
+          title={`Resultados — ${pedidos.length} pedido${pedidos.length !== 1 ? 's' : ''}`}
           columns={columns}
-          data={remitos}
-          emptyText="No se encontraron remitos con los filtros seleccionados"
-          onRowClick={row => navigate(`/remitos/${row.id}`)}
+          data={pedidos}
+          emptyText="No se encontraron pedidos con los filtros seleccionados"
+          onRowClick={row => navigate(`/pedidos/${row.id}`)}
           initialPageIndex={pageIndex}
           onPageChange={handlePageChange}
           pageSize={20}
@@ -351,9 +288,9 @@ export const RemitosListPage = () => {
         onCancel={() => setConfirmDelete(null)}
         onConfirm={handleDelete}
         variant="danger"
-        title="Eliminar remito"
+        title="Eliminar pedido"
         message={confirmDelete
-          ? `¿Confirma eliminar el remito #${confirmDelete.id}? Esta acción no se puede deshacer.`
+          ? `¿Confirma eliminar el pedido #${confirmDelete.id}? Esta acción no se puede deshacer.`
           : ''}
       />
     </div>

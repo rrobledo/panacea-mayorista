@@ -8,7 +8,10 @@ import { ChartsPage } from './pages/ChartsPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { MasterDetailPage, ComplexFormPage } from './pages/FormPages';
 import { PrintableReportPage } from './pages/PrintableReportPage';
-import { RemitosPage } from './pages/RemitosPage';
+import { PedidosPage } from './pages/PedidosPage';
+import { PedidosListPage } from './pages/PedidosListPage';
+import { PedidoDetailPage } from './pages/PedidoDetailPage';
+import { RemitoNuevoPage } from './pages/RemitoNuevoPage';
 import { RemitosListPage } from './pages/RemitosListPage';
 import { RemitoDetailPage } from './pages/RemitoDetailPage';
 import { PendientesPorDiaPage } from './pages/PendientesPorDiaPage';
@@ -51,12 +54,14 @@ function App() {
                 <AppLayout>
                   <Routes>
                     <Route path="/"                    element={<DashboardPage />} />
-                    <Route path="/remitos/nuevo"       element={<RemitosPage />} />
+                    <Route path="/pedidos/nuevo"       element={<PedidosPage />} />
+                    <Route path="/pedidos/consulta"    element={<PedidosListPage />} />
+                    <Route path="/pedidos/:id"         element={<PedidoDetailPage />} />
+                    <Route path="/remitos/nuevo"       element={<RemitoNuevoPage />} />
                     <Route path="/remitos/consulta"    element={<RemitosListPage />} />
                     <Route path="/remitos/:id"         element={<RemitoDetailPage />} />
                     <Route path="/charts"              element={<ChartsPage />} />
                     <Route path="/products"            element={<ProductsPage />} />
-                    <Route path="/orders"              element={<Placeholder title="Pedidos" />} />
                     <Route path="/customers"           element={<ClientesPage />} />
                     <Route path="/users"               element={<Placeholder title="Usuarios" />} />
                     <Route path="/forms/master-detail" element={<MasterDetailPage />} />

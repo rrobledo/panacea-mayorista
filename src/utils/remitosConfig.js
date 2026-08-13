@@ -1,43 +1,44 @@
+export { formatDate } from './dates';
+
 export const ESTADO_LABELS = {
-  creado:          'Pendiente',
-  en_produccion:   'En Producción',
-  preparando:      'En Preparación',
-  listo_entregar:  'Listo Para Entrega',
-  en_entrega:      'En Camino',
-  facturado:       'Entregado',
+  LISTO:          'Listo',
+  EN_TRANSITO:    'En Tránsito',
+  RECIBIDO:       'Recibido',
 };
 
 export const ESTADO_BADGE_CLASS = {
-  creado:          'badge-gray',
-  en_produccion:   'badge-warning',
-  preparando:      'badge-warning',
-  listo_entregar:  'badge-primary',
-  en_entrega:      'badge-primary',
-  facturado:       'badge-success',
+  LISTO:          'badge-primary',
+  EN_TRANSITO:    'badge-primary',
+  RECIBIDO:       'badge-success',
 };
 
 export const NEXT_ESTADO = {
-  creado:          'en_produccion',
-  en_produccion:   'preparando',
-  preparando:      'listo_entregar',
-  listo_entregar:  'en_entrega',
-  en_entrega:      'facturado',
-  facturado:       null,
+  LISTO:          'EN_TRANSITO',
+  EN_TRANSITO:    'RECIBIDO',
+  RECIBIDO:       null,
 };
 
 export const ESTADO_FILTER_OPTIONS = [
-  { value: '',               label: 'Todos' },
-  { value: 'creado',         label: 'Pendiente' },
-  { value: 'en_produccion',  label: 'En Producción' },
-  { value: 'preparando',     label: 'En Preparación' },
-  { value: 'listo_entregar', label: 'Listo Para Entrega' },
-  { value: 'en_entrega',     label: 'En Camino' },
-  { value: 'facturado',      label: 'Entregado' },
+  { value: '',              label: 'Todos' },
+  { value: 'LISTO',          label: 'Listo' },
+  { value: 'EN_TRANSITO',    label: 'En Tránsito' },
+  { value: 'RECIBIDO',       label: 'Recibido' },
 ];
 
-export const formatDate = (iso) => {
-  if (!iso) return '—';
-  const [date] = iso.split('T');
-  const [y, m, d] = date.split('-');
-  return `${d}/${m}/${y}`;
+export const TIPO_LABELS = {
+  VENTA:         'Venta',
+  TRANSFERENCIA: 'Transferencia',
 };
+
+export const TIPO_FILTER_OPTIONS = [
+  { value: '',              label: 'Todos' },
+  { value: 'VENTA',          label: 'Venta' },
+  { value: 'TRANSFERENCIA',  label: 'Transferencia' },
+];
+
+// Orden del historial de estados del remito: cada uno con el campo de fecha que registra su cumplimiento
+export const HISTORIAL_ESTADOS = [
+  { key: 'LISTO',          fechaKey: 'fecha_listo' },
+  { key: 'EN_TRANSITO',    fechaKey: 'fecha_despacho' },
+  { key: 'RECIBIDO',       fechaKey: 'fecha_recibido' },
+];

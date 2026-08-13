@@ -253,7 +253,7 @@ export const ProductosPendientesPorDiaPage = () => {
 
   const fetchReport = useCallback((d, h) => {
     setLoading(true);
-    api.get('/remitos-reportes/productos-pendientes-por-dia', { params: { fecha_desde: d, fecha_hasta: h } })
+    api.get('/pedidos-reportes/productos-pendientes-por-dia', { params: { fecha_desde: d, fecha_hasta: h } })
       .then(res => {
         setData(res.data);
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ desde: d, hasta: h, data: res.data }));

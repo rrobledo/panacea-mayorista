@@ -10,12 +10,16 @@ import './layout.css';
 
 const NAV = [
   { label: 'Panel Principal', icon: LayoutDashboard, to: '/' },
+  { label: 'Pedidos', icon: FileText, prefix: '/pedidos', children: [
+    { label: 'Carga de Pedido',   to: '/pedidos/nuevo'    },
+    { label: 'Consulta',          to: '/pedidos/consulta' },
+  ]},
   { label: 'Remitos', icon: Truck, prefix: '/remitos', children: [
-    { label: 'Carga de Remito',   to: '/remitos/nuevo'    },
+    { label: 'Nuevo Remito',      to: '/remitos/nuevo'    },
     { label: 'Consulta',          to: '/remitos/consulta' },
   ]},
   // { label: 'Gráficos',  icon: BarChart2,     to: '/charts'   },
-  { label: 'Reportes',  icon: FileText,      children: [
+  { label: 'Reportes',  icon: BarChart2,      children: [
     // { label: 'Grilla de datos',    to: '/remitos-reportes/grid'      },
     // { label: 'Generador',          to: '/remitos-reportes/builder'   },
     // { label: 'Imprimible',         to: '/remitos-reportes/printable' },
@@ -25,7 +29,6 @@ const NAV = [
   {
     label: 'Entidades', icon: Package, children: [
       { label: 'Productos',  to: '/products'   },
-      { label: 'Pedidos',    to: '/orders'     },
       { label: 'Clientes',   to: '/customers'  },
     ]
   },

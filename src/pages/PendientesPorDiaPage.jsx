@@ -4,7 +4,7 @@ import { Search, Printer } from 'lucide-react';
 import { api } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { InlineLoader } from '../components/ui';
-import { ESTADO_BADGE_CLASS, ESTADO_LABELS } from '../utils/remitosConfig';
+import { ESTADO_BADGE_CLASS, ESTADO_LABELS } from '../utils/pedidosConfig';
 
 const STORAGE_KEY = 'panacea_pendientes_por_dia';
 const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -60,13 +60,13 @@ const buildClientGrid = (data) => {
   const clientesMap = new Map();
   const grid = new Map();
   for (const day of data) {
-    for (const remito of day.remitos) {
-      const cid = remito.cliente_id;
-      if (!clientesMap.has(cid)) clientesMap.set(cid, remito.cliente);
+    for (const pedido of day.pedidos) {
+      const cid = pedido.cliente_id;
+      if (!clientesMap.has(cid)) clientesMap.set(cid, pedido.cliente);
       if (!grid.has(cid)) grid.set(cid, new Map());
       const dm = grid.get(cid);
       if (!dm.has(day.fecha)) dm.set(day.fecha, []);
-      dm.get(day.fecha).push(remito);
+      dm.get(day.fecha).push(pedido);
     }
   }
   const clientIds = [...clientesMap.keys()].sort((a, b) => {
@@ -105,7 +105,7 @@ const TD = ({ align = 'left', bg, children }) => (
 const DaySummary = ({ d }) => (
   <div style={{ fontSize: 12, lineHeight: 1.9, minWidth: 100 }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontWeight: 700, color: 'var(--gray-800)' }}>
-      <span>Remitos:</span><span>{d.total_remitos}</span>
+      <span>Pedidos:</span><span>{d.total_pedidos}</span>
     </div>
     {d.total_pendientes > 0 && (
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: 'var(--gray-600)' }}>
@@ -122,14 +122,14 @@ const DaySummary = ({ d }) => (
         <span>Listo:</span><span>{d.total_listo_para_entrega}</span>
       </div>
     )}
-    {d.total_en_camino > 0 && (
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: 'var(--secondary)' }}>
-        <span>En Camino:</span><span>{d.total_en_camino}</span>
-      </div>
-    )}
     {d.total_entregados > 0 && (
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: 'var(--success)' }}>
         <span>Entregados:</span><span>{d.total_entregados}</span>
+      </div>
+    )}
+    {d.total_cancelados > 0 && (
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: 'var(--danger)' }}>
+        <span>Cancelados:</span><span>{d.total_cancelados}</span>
       </div>
     )}
   </div>
@@ -158,7 +158,7 @@ export const PendientesPorDiaPage = () => {
 
   const fetchReport = useCallback((d, h) => {
     setLoading(true);
-    api.get('/remitos-reportes/pendientes-por-dia', { params: { fecha_desde: d, fecha_hasta: h } })
+    api.get('/pedidos-reportes/pendientes-por-dia', { params: { fecha_desde: d, fecha_hasta: h } })
       .then(res => {
         setData(res.data);
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ desde: d, hasta: h, data: res.data }));
@@ -185,16 +185,16 @@ export const PendientesPorDiaPage = () => {
     const d = dayDataMap.get(fecha);
     if (!d) return acc;
     return {
-      total_remitos:            acc.total_remitos            + d.total_remitos,
+      total_pedidos:            acc.total_pedidos            + d.total_pedidos,
       total_pendientes:         acc.total_pendientes         + d.total_pendientes,
       total_en_preparacion:     acc.total_en_preparacion     + d.total_en_preparacion,
       total_listo_para_entrega: acc.total_listo_para_entrega + d.total_listo_para_entrega,
-      total_en_camino:          acc.total_en_camino          + d.total_en_camino,
       total_entregados:         acc.total_entregados         + d.total_entregados,
+      total_cancelados:         acc.total_cancelados         + d.total_cancelados,
     };
   }, {
-    total_remitos: 0, total_pendientes: 0, total_en_preparacion: 0,
-    total_listo_para_entrega: 0, total_en_camino: 0, total_entregados: 0,
+    total_pedidos: 0, total_pendientes: 0, total_en_preparacion: 0,
+    total_listo_para_entrega: 0, total_entregados: 0, total_cancelados: 0,
   });
 
   return (
@@ -203,7 +203,7 @@ export const PendientesPorDiaPage = () => {
       <div className="page-header">
         <div className="page-header-left">
           <div className="page-title">Pendientes por Día</div>
-          <div className="page-subtitle">Distribución de remitos por fecha de entrega</div>
+          <div className="page-subtitle">Distribución de pedidos por fecha de entrega</div>
         </div>
         <div className="no-print">
           <button className="btn btn-secondary" onClick={() => window.print()}>
@@ -255,12 +255,12 @@ export const PendientesPorDiaPage = () => {
             </div>
             <div className="card-body">
               <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'center' }}>
-                <StatBox label="Total Remitos"      value={totalGlobal.total_remitos}            color="var(--gray-800)"  />
+                <StatBox label="Total Pedidos"       value={totalGlobal.total_pedidos}            color="var(--gray-800)"  />
                 <StatBox label="Pendientes"          value={totalGlobal.total_pendientes}         color="var(--gray-600)"  />
                 <StatBox label="En Preparación"      value={totalGlobal.total_en_preparacion}     color="var(--warning)"   />
                 <StatBox label="Listo Para Entrega"  value={totalGlobal.total_listo_para_entrega} color="var(--primary)"   />
-                <StatBox label="En Camino"           value={totalGlobal.total_en_camino}          color="var(--secondary)" />
                 <StatBox label="Entregados"          value={totalGlobal.total_entregados}         color="var(--success)"   />
+                <StatBox label="Cancelados"          value={totalGlobal.total_cancelados}         color="var(--danger)"    />
               </div>
             </div>
           </div>
@@ -322,7 +322,7 @@ export const PendientesPorDiaPage = () => {
                         colSpan={days.length + 1}
                         style={{ padding: '40px', textAlign: 'center', color: 'var(--gray-400)', fontSize: 14 }}
                       >
-                        No hay remitos en el período seleccionado
+                        No hay pedidos en el período seleccionado
                       </td>
                     </tr>
                   ) : clientIds.map((cid, idx) => {
@@ -347,19 +347,19 @@ export const PendientesPorDiaPage = () => {
                           )}
                         </TD>
                         {days.map(fecha => {
-                          const remitos = clientDays?.get(fecha) || [];
+                          const pedidos = clientDays?.get(fecha) || [];
                           return (
                             <TD key={fecha} align="center">
-                              {remitos.length === 0
+                              {pedidos.length === 0
                                 ? <span style={{ color: 'var(--gray-200)' }}>—</span>
                                 : (
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
-                                    {remitos.map(r => (
+                                    {pedidos.map(r => (
                                       <div key={r.id}>
                                         {/* Screen: clickable button */}
                                         <button
                                           className="no-print"
-                                          onClick={() => navigate(`/remitos/${r.id}`)}
+                                          onClick={() => navigate(`/pedidos/${r.id}`)}
                                           style={{
                                             background: 'none',
                                             border: '1px solid var(--primary)',

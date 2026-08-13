@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://panacea-mayorista-backend.vercel.app',
+  baseURL: import.meta.env.VITE_API_URL || 'https://panacea-produccion-backend.vercel.app/costos',
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -34,4 +34,20 @@ export const remitosService = {
   update: (id, data) => api.put(`/remitos/${id}`, data),
   remove: (id)     => api.delete(`/remitos/${id}`),
   estado: (id, nuevo_estado) => api.patch(`/remitos/${id}/estado`, { nuevo_estado }),
+};
+
+export const pedidosService = {
+  create: (data)   => api.post('/pedidos', data),
+  list:   (params) => api.get('/pedidos', { params }),
+  get:    (id)     => api.get(`/pedidos/${id}`),
+  update: (id, data) => api.put(`/pedidos/${id}`, data),
+  remove: (id)     => api.delete(`/pedidos/${id}`),
+  estado: (id, nuevo_estado) => api.patch(`/pedidos/${id}/estado`, { nuevo_estado }),
+  entrega: (id, lineas) => api.patch(`/pedidos/${id}/entrega`, { lineas }),
+};
+
+export const sucursalesService = {
+  list:   (params) => api.get('/sucursales', { params }),
+  create: (data)   => api.post('/sucursales', data),
+  update: (id, data) => api.put(`/sucursales/${id}`, data),
 };
