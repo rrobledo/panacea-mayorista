@@ -215,10 +215,10 @@ export const PedidosPage = () => {
                 type="date"
                 className={`form-input${errors.fechaEntrega ? ' error' : ''}`}
                 value={form.fechaEntrega}
-                min={fechaEntregaMin}
+                min={tipo === 'CLIENTE' ? fechaEntregaMin : undefined}
                 onChange={e => {
                   const val = e.target.value;
-                  if (val && val < fechaEntregaMin) return;
+                  if (tipo === 'CLIENTE' && val && val < fechaEntregaMin) return;
                   handleField('fechaEntrega', val);
                 }}
               />
