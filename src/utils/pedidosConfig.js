@@ -1,5 +1,16 @@
 export { formatDate } from './dates';
 
+export const TIPO_LABELS = {
+  CLIENTE:  'Cliente',
+  SUCURSAL: 'Sucursal',
+};
+
+export const TIPO_FILTER_OPTIONS = [
+  { value: '',         label: 'Todos' },
+  { value: 'CLIENTE',  label: 'Cliente' },
+  { value: 'SUCURSAL', label: 'Sucursal' },
+];
+
 export const ESTADO_LABELS = {
   PENDIENTE:          'Pendiente',
   EN_PREPARACION:     'En Preparación',

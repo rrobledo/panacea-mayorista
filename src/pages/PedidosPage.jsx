@@ -6,6 +6,7 @@ import { pedidosService } from '../services/api';
 import { Field } from '../components/ui';
 import { ClientePopup } from '../components/remitos/ClientePopup';
 import { ProductoPopup } from '../components/remitos/ProductoPopup';
+import { SucursalSelect } from '../components/remitos/SucursalSelect';
 
 const fmt = (v) => `$${Number(v).toFixed(2)}`;
 
@@ -13,12 +14,14 @@ const initialForm = {
   fechaEntrega: '',
   vendedor: '',
   observaciones: '',
+  sucursalId: '',
 };
 
 export const PedidosPage = () => {
   const { user } = useAuth();
   const toast = useToast();
 
+  const [tipo, setTipo]                     = useState('CLIENTE');
   const [cliente, setCliente]               = useState(null);
   const [productos, setProductos]           = useState([]);
   const [form, setForm]                     = useState({ ...initialForm, vendedor: user?.name || '' });
@@ -40,6 +43,13 @@ export const PedidosPage = () => {
   const handleClienteSelect = (c) => {
     setCliente(c);
     setClientePopup(false);
+  };
+
+  const handleTipoChange = (nuevoTipo) => {
+    setTipo(nuevoTipo);
+    setCliente(null);
+    setForm({ ...initialForm, vendedor: form.vendedor });
+    setErrors({});
   };
 
   const handleProductoAdd = (producto, cantidad) => {
@@ -66,12 +76,11 @@ export const PedidosPage = () => {
     return errs;
   };
 
-  const canSubmit =
-    cliente !== null &&
-    productos.length > 0 &&
-    form.fechaEntrega !== '' &&
-    form.vendedor.trim() !== '' &&
-    !submitting;
+  const canSubmit = (() => {
+    if (submitting || productos.length === 0 || form.fechaEntrega === '' || !form.vendedor.trim()) return false;
+    if (tipo === 'CLIENTE') return cliente !== null;
+    return form.sucursalId !== '';
+  })();
 
   const handleSubmit = async () => {
     const errs = validate();
@@ -80,14 +89,17 @@ export const PedidosPage = () => {
     setSubmitting(true);
     try {
       const payload = {
+        tipo,
         vendedor: form.vendedor.trim(),
         observaciones: form.observaciones.trim() || null,
         fecha_entrega: `${form.fechaEntrega}T00:00:00`,
-        cliente_id: cliente.idcliente,
         detalles: productos.map(p => ({
           producto_id: p.id,
           cantidad_pedida: p.cantidad,
         })),
+        ...(tipo === 'CLIENTE'
+          ? { cliente_id: cliente.idcliente }
+          : { sucursal_id: Number(form.sucursalId) }),
       };
 
       const res = await pedidosService.create(payload);
@@ -121,6 +133,27 @@ export const PedidosPage = () => {
         </div>
       </div>
 
+      {/* ── Tipo ── */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card-header"><span className="card-title">Tipo de Pedido</span></div>
+        <div className="card-body">
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button
+              className={`btn ${tipo === 'CLIENTE' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => handleTipoChange('CLIENTE')}
+            >
+              Cliente
+            </button>
+            <button
+              className={`btn ${tipo === 'SUCURSAL' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => handleTipoChange('SUCURSAL')}
+            >
+              Sucursal
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* ── Datos del pedido ── */}
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
@@ -129,44 +162,52 @@ export const PedidosPage = () => {
         <div className="card-body">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
 
-            {/* Cliente */}
-            <div className="form-group" style={{ gridColumn: 'span 2' }}>
-              <label className="form-label">
-                Cliente <span className="required">*</span>
-              </label>
-              {cliente ? (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '10px 14px', background: 'var(--primary-light)',
-                  border: '1px solid var(--primary)', borderRadius: 'var(--radius)',
-                }}>
-                  <UserCheck size={18} color="var(--primary)" style={{ flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, color: 'var(--gray-800)' }}>{nombreCliente(cliente)}</div>
-                    <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 2, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                      {cliente.cuit && <span>CUIT: {cliente.cuit}</span>}
-                      {cliente.direccion && <span>{cliente.direccion}</span>}
-                      {cliente.localidad && <span>{cliente.localidad}</span>}
-                      {cliente.tel1 && <span>Tel: {cliente.tel1}</span>}
+            {tipo === 'CLIENTE' ? (
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">
+                  Cliente <span className="required">*</span>
+                </label>
+                {cliente ? (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '10px 14px', background: 'var(--primary-light)',
+                    border: '1px solid var(--primary)', borderRadius: 'var(--radius)',
+                  }}>
+                    <UserCheck size={18} color="var(--primary)" style={{ flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, color: 'var(--gray-800)' }}>{nombreCliente(cliente)}</div>
+                      <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 2, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                        {cliente.cuit && <span>CUIT: {cliente.cuit}</span>}
+                        {cliente.direccion && <span>{cliente.direccion}</span>}
+                        {cliente.localidad && <span>{cliente.localidad}</span>}
+                        {cliente.tel1 && <span>Tel: {cliente.tel1}</span>}
+                      </div>
                     </div>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setClientePopup(true)}
+                    >
+                      Cambiar
+                    </button>
                   </div>
+                ) : (
                   <button
-                    className="btn btn-secondary btn-sm"
+                    className="btn btn-secondary"
                     onClick={() => setClientePopup(true)}
+                    style={{ alignSelf: 'flex-start' }}
                   >
-                    Cambiar
+                    <UserCheck size={14} /> Seleccionar Cliente
                   </button>
-                </div>
-              ) : (
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setClientePopup(true)}
-                  style={{ alignSelf: 'flex-start' }}
-                >
-                  <UserCheck size={14} /> Seleccionar Cliente
-                </button>
-              )}
-            </div>
+                )}
+              </div>
+            ) : (
+              <Field label="Sucursal Solicitante" required span={2}>
+                <SucursalSelect
+                  value={form.sucursalId}
+                  onChange={v => handleField('sucursalId', v)}
+                />
+              </Field>
+            )}
 
             {/* Fecha de entrega */}
             <Field label="Fecha de Entrega" required error={errors.fechaEntrega}>
@@ -294,9 +335,11 @@ export const PedidosPage = () => {
       </div>
 
       {/* ── Validación y envío ── */}
-      {(!cliente || productos.length === 0) && (
+      {((tipo === 'CLIENTE' ? !cliente : form.sucursalId === '') || productos.length === 0) && (
         <div className="alert alert-warning" style={{ marginBottom: 16, fontSize: 13 }}>
-          {!cliente && <div>• Debe seleccionar un cliente</div>}
+          {tipo === 'CLIENTE'
+            ? !cliente && <div>• Debe seleccionar un cliente</div>
+            : form.sucursalId === '' && <div>• Debe seleccionar una sucursal</div>}
           {productos.length === 0 && <div>• Debe agregar al menos un producto</div>}
         </div>
       )}

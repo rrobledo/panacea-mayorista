@@ -186,8 +186,12 @@ export const PedidoDetailPage = () => {
     </div>
   );
 
+  const esSucursal = pedido.tipo === 'SUCURSAL';
   const nombreCliente = [pedido.cliente?.nom1, pedido.cliente?.nom2].filter(Boolean).join(' ')
     || `Cliente #${pedido.cliente_id}`;
+  const nombreSolicitante = esSucursal
+    ? (pedido.sucursal?.nombre || `Sucursal #${pedido.sucursal_id}`)
+    : nombreCliente;
 
   const siguienteEstado = NEXT_ESTADO[pedido.estado];
   const totalEstimado = lineas.reduce((acc, l) => acc + l.precio_actual * l.cantidad_pedida, 0);
@@ -208,7 +212,7 @@ export const PedidoDetailPage = () => {
               </span>
             </div>
             <div className="page-subtitle">
-              Cargado el {formatDate(pedido.fecha_carga)} · {nombreCliente}
+              Cargado el {formatDate(pedido.fecha_carga)} · {nombreSolicitante}
             </div>
           </div>
         </div>
@@ -251,18 +255,18 @@ export const PedidoDetailPage = () => {
         <div className="card-body">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
 
-            {/* Cliente (read-only) */}
+            {/* Cliente / Sucursal (read-only) */}
             <div className="form-group" style={{ gridColumn: 'span 2' }}>
-              <label className="form-label">Cliente</label>
+              <label className="form-label">{esSucursal ? 'Sucursal' : 'Cliente'}</label>
               <div style={{
                 padding: '8px 12px', background: 'var(--gray-50)',
                 border: '1px solid var(--gray-200)', borderRadius: 'var(--radius)',
                 fontSize: 14, color: 'var(--gray-700)',
               }}>
-                <span style={{ fontWeight: 600 }}>{nombreCliente}</span>
-                {pedido.cliente?.cuit      && <span style={{ marginLeft: 16, color: 'var(--gray-500)', fontSize: 12 }}>CUIT: {pedido.cliente.cuit}</span>}
-                {pedido.cliente?.direccion && <span style={{ marginLeft: 12, color: 'var(--gray-500)', fontSize: 12 }}>{pedido.cliente.direccion}</span>}
-                {pedido.cliente?.localidad && <span style={{ marginLeft: 12, color: 'var(--gray-500)', fontSize: 12 }}>{pedido.cliente.localidad}</span>}
+                <span style={{ fontWeight: 600 }}>{nombreSolicitante}</span>
+                {!esSucursal && pedido.cliente?.cuit      && <span style={{ marginLeft: 16, color: 'var(--gray-500)', fontSize: 12 }}>CUIT: {pedido.cliente.cuit}</span>}
+                {!esSucursal && pedido.cliente?.direccion && <span style={{ marginLeft: 12, color: 'var(--gray-500)', fontSize: 12 }}>{pedido.cliente.direccion}</span>}
+                {!esSucursal && pedido.cliente?.localidad && <span style={{ marginLeft: 12, color: 'var(--gray-500)', fontSize: 12 }}>{pedido.cliente.localidad}</span>}
               </div>
             </div>
 

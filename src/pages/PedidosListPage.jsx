@@ -3,16 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { Search, X, Eye, Trash2 } from 'lucide-react';
 import { DataGrid } from '../components/grid/DataGrid';
 import { ClientePopup } from '../components/remitos/ClientePopup';
+import { SucursalSelect } from '../components/remitos/SucursalSelect';
 import { pedidosService } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { InlineLoader, ConfirmDialog } from '../components/ui';
 import {
-  ESTADO_LABELS, ESTADO_BADGE_CLASS, ESTADO_FILTER_OPTIONS, formatDate,
+  ESTADO_LABELS, ESTADO_BADGE_CLASS, ESTADO_FILTER_OPTIONS, TIPO_FILTER_OPTIONS, formatDate,
 } from '../utils/pedidosConfig';
 
 const STORAGE_KEY = 'panacea_pedidos_consulta';
 
-const initialFilters = { fechaDesde: '', fechaHasta: '', estadoFilter: '' };
+const initialFilters = { fechaDesde: '', fechaHasta: '', estadoFilter: '', tipoFilter: '' };
 
 // Read persisted state synchronously so first render is already restored
 const loadSaved = () => {
@@ -25,11 +26,12 @@ const loadSaved = () => {
 const buildColumns = (navigate, onDelete) => [
   { accessorKey: 'id',        header: '#',              size: 60 },
   {
-    id: 'cliente',
-    header: 'Cliente',
+    id: 'solicitante',
+    header: 'Solicitante',
     size: 200,
-    accessorFn: row =>
-      [row.cliente?.nom1, row.cliente?.nom2].filter(Boolean).join(' ') || `#${row.cliente_id}`,
+    accessorFn: row => row.tipo === 'SUCURSAL'
+      ? (row.sucursal?.nombre || `Sucursal #${row.sucursal_id}`)
+      : ([row.cliente?.nom1, row.cliente?.nom2].filter(Boolean).join(' ') || `Cliente #${row.cliente_id}`),
   },
   {
     id: 'fecha_entrega',
@@ -94,6 +96,7 @@ export const PedidosListPage = () => {
   const [saved]  = useState(loadSaved);
   const [filters,  setFilters]  = useState(saved?.filters  || initialFilters);
   const [cliente,  setCliente]  = useState(saved?.cliente  || null);
+  const [sucursalId, setSucursalId] = useState(saved?.sucursalId || '');
   const [pedidos,  setPedidos]  = useState(saved?.pedidos  || []);
   const [searched, setSearched] = useState(saved?.searched || false);
   const [pageIndex, setPageIndex] = useState(saved?.pageIndex || 0);
@@ -103,10 +106,10 @@ export const PedidosListPage = () => {
 
   const persist = useCallback((overrides = {}) => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-      filters, cliente, pedidos, searched, pageIndex,
+      filters, cliente, sucursalId, pedidos, searched, pageIndex,
       ...overrides,
     }));
-  }, [filters, cliente, pedidos, searched, pageIndex]);
+  }, [filters, cliente, sucursalId, pedidos, searched, pageIndex]);
 
   const buscar = () => {
     setLoading(true);
@@ -116,7 +119,9 @@ export const PedidosListPage = () => {
     if (filters.fechaDesde) params.fecha_desde = `${filters.fechaDesde}T00:00:00`;
     if (filters.fechaHasta) params.fecha_hasta = `${filters.fechaHasta}T23:59:59`;
     if (cliente)            params.cliente_id  = cliente.idcliente;
+    if (sucursalId)         params.sucursal_id = sucursalId;
     if (filters.estadoFilter) params.estado    = filters.estadoFilter;
+    if (filters.tipoFilter)   params.tipo      = filters.tipoFilter;
 
     pedidosService.list(params)
       .then(res => {
@@ -124,7 +129,7 @@ export const PedidosListPage = () => {
         setPedidos(data);
         setPageIndex(0);
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-          filters, cliente, pedidos: data, searched: true, pageIndex: 0,
+          filters, cliente, sucursalId, pedidos: data, searched: true, pageIndex: 0,
         }));
       })
       .catch(() => toast.error('Error al consultar pedidos'))
@@ -134,6 +139,7 @@ export const PedidosListPage = () => {
   const limpiar = () => {
     setFilters(initialFilters);
     setCliente(null);
+    setSucursalId('');
     setPedidos([]);
     setSearched(false);
     setPageIndex(0);
@@ -221,6 +227,24 @@ export const PedidosListPage = () => {
                   Seleccionar…
                 </button>
               )}
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Sucursal</label>
+              <SucursalSelect value={sucursalId} onChange={setSucursalId} />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Tipo</label>
+              <select
+                className="form-select"
+                value={filters.tipoFilter}
+                onChange={e => setFilters(f => ({ ...f, tipoFilter: e.target.value }))}
+              >
+                {TIPO_FILTER_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
             </div>
 
             <div className="form-group">
