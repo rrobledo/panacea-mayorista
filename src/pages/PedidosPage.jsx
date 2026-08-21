@@ -34,6 +34,7 @@ export const PedidosPage = () => {
     [c.nom1, c.nom2].filter(Boolean).join(' ') || `Cliente #${c.idcliente}`;
 
   const fechaEntregaMin = (() => { const d = new Date(); const dias = d.getHours() < 14 ? 2 : 3; d.setDate(d.getDate() + dias); return d.toISOString().split('T')[0]; })();
+  const fechaEntregaMinSucursal = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })();
 
   const handleField = (field, value) => {
     setForm(f => ({ ...f, [field]: value }));
@@ -48,7 +49,11 @@ export const PedidosPage = () => {
   const handleTipoChange = (nuevoTipo) => {
     setTipo(nuevoTipo);
     setCliente(null);
-    setForm({ ...initialForm, vendedor: form.vendedor });
+    setForm({
+      ...initialForm,
+      vendedor: form.vendedor,
+      fechaEntrega: nuevoTipo === 'SUCURSAL' ? fechaEntregaMinSucursal : '',
+    });
     setErrors({});
   };
 
@@ -215,10 +220,11 @@ export const PedidosPage = () => {
                 type="date"
                 className={`form-input${errors.fechaEntrega ? ' error' : ''}`}
                 value={form.fechaEntrega}
-                min={tipo === 'CLIENTE' ? fechaEntregaMin : undefined}
+                min={tipo === 'CLIENTE' ? fechaEntregaMin : fechaEntregaMinSucursal}
                 onChange={e => {
                   const val = e.target.value;
-                  if (tipo === 'CLIENTE' && val && val < fechaEntregaMin) return;
+                  const min = tipo === 'CLIENTE' ? fechaEntregaMin : fechaEntregaMinSucursal;
+                  if (val && val < min) return;
                   handleField('fechaEntrega', val);
                 }}
               />
