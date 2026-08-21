@@ -57,28 +57,33 @@ const loadSaved = () => {
 };
 
 const buildClientGrid = (data) => {
-  const clientesMap = new Map();
+  const entitiesMap = new Map();
   const grid = new Map();
   for (const day of data) {
     for (const pedido of day.pedidos) {
-      const cid = pedido.cliente_id;
-      if (!clientesMap.has(cid)) clientesMap.set(cid, pedido.cliente);
-      if (!grid.has(cid)) grid.set(cid, new Map());
-      const dm = grid.get(cid);
+      const key = pedido.tipo === 'SUCURSAL' ? `S${pedido.sucursal_id}` : `C${pedido.cliente_id}`;
+      if (!entitiesMap.has(key)) entitiesMap.set(key, pedido);
+      if (!grid.has(key)) grid.set(key, new Map());
+      const dm = grid.get(key);
       if (!dm.has(day.fecha)) dm.set(day.fecha, []);
       dm.get(day.fecha).push(pedido);
     }
   }
-  const clientIds = [...clientesMap.keys()].sort((a, b) => {
-    const na = [clientesMap.get(a)?.nom1, clientesMap.get(a)?.nom2].filter(Boolean).join(' ').toLowerCase();
-    const nb = [clientesMap.get(b)?.nom1, clientesMap.get(b)?.nom2].filter(Boolean).join(' ').toLowerCase();
+  const entityKeys = [...entitiesMap.keys()].sort((a, b) => {
+    const na = nombreSolicitante(entitiesMap.get(a)).toLowerCase();
+    const nb = nombreSolicitante(entitiesMap.get(b)).toLowerCase();
     return na.localeCompare(nb);
   });
-  return { clientesMap, grid, clientIds };
+  return { entitiesMap, grid, entityKeys };
 };
 
-const nombreCliente = (c) =>
-  [c?.nom1, c?.nom2].filter(Boolean).join(' ').trim() || `Cliente #${c?.idcliente}`;
+const nombreSolicitante = (pedido) => {
+  if (pedido?.tipo === 'SUCURSAL') {
+    return `Sucursal: ${pedido.sucursal?.nombre || `#${pedido.sucursal_id}`}`;
+  }
+  const c = pedido?.cliente;
+  return [c?.nom1, c?.nom2].filter(Boolean).join(' ').trim() || `Cliente #${pedido?.cliente_id}`;
+};
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -177,9 +182,9 @@ export const PendientesPorDiaPage = () => {
   // Build derived structures from data
   const days = data ? generateDateRange(desde, hasta) : [];
   const dayDataMap = data ? new Map(data.map(d => [d.fecha, d])) : new Map();
-  const { clientesMap, grid, clientIds } = data
+  const { entitiesMap, grid, entityKeys } = data
     ? buildClientGrid(data)
-    : { clientesMap: new Map(), grid: new Map(), clientIds: [] };
+    : { entitiesMap: new Map(), grid: new Map(), entityKeys: [] };
 
   const totalGlobal = days.reduce((acc, fecha) => {
     const d = dayDataMap.get(fecha);
@@ -316,7 +321,7 @@ export const PendientesPorDiaPage = () => {
                   </tr>
 
                   {/* Client rows */}
-                  {clientIds.length === 0 ? (
+                  {entityKeys.length === 0 ? (
                     <tr>
                       <td
                         colSpan={days.length + 1}
@@ -325,12 +330,12 @@ export const PendientesPorDiaPage = () => {
                         No hay pedidos en el período seleccionado
                       </td>
                     </tr>
-                  ) : clientIds.map((cid, idx) => {
-                    const cliente = clientesMap.get(cid);
-                    const clientDays = grid.get(cid);
+                  ) : entityKeys.map((key, idx) => {
+                    const entity = entitiesMap.get(key);
+                    const entityDays = grid.get(key);
                     return (
                       <tr
-                        key={cid}
+                        key={key}
                         style={{
                           borderBottom: '1px solid var(--gray-100)',
                           background: idx % 2 === 0 ? 'var(--white)' : 'var(--gray-50)',
@@ -338,16 +343,16 @@ export const PendientesPorDiaPage = () => {
                       >
                         <TD>
                           <div style={{ fontWeight: 500, fontSize: 13, color: 'var(--gray-800)', lineHeight: 1.3 }}>
-                            {nombreCliente(cliente)}
+                            {nombreSolicitante(entity)}
                           </div>
-                          {cliente?.localidad && (
+                          {entity?.tipo !== 'SUCURSAL' && entity?.cliente?.localidad && (
                             <div style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 2 }}>
-                              {cliente.localidad}
+                              {entity.cliente.localidad}
                             </div>
                           )}
                         </TD>
                         {days.map(fecha => {
-                          const pedidos = clientDays?.get(fecha) || [];
+                          const pedidos = entityDays?.get(fecha) || [];
                           return (
                             <TD key={fecha} align="center">
                               {pedidos.length === 0
