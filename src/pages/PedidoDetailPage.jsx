@@ -102,8 +102,12 @@ export const PedidoDetailPage = () => {
         next[idx] = { ...next[idx], cantidad_pedida: next[idx].cantidad_pedida + cantidad };
         return next;
       }
+      // Un ítem agregado editando un pedido ya creado nace con lo pedido ya
+      // entregado — a diferencia de un pedido nuevo, donde nada se entregó
+      // todavía. El usuario puede seguir ajustando la cantidad entregada
+      // después con "Guardar entrega".
       return [...prev, {
-        detalle_id: null, producto_id: producto.id, cantidad_pedida: cantidad, cantidad_entregada: 0,
+        detalle_id: null, producto_id: producto.id, cantidad_pedida: cantidad, cantidad_entregada: cantidad,
         nombre: producto.nombre, codigo: producto.codigo, unidad_medida: producto.unidad_medida,
         precio_actual: producto.precio_actual, categoria: producto.categoria,
       }];
@@ -122,7 +126,11 @@ export const PedidoDetailPage = () => {
       const res = await pedidosService.update(id, {
         vendedor: vendedor.trim(),
         observaciones: observaciones.trim() || null,
-        detalles: lineas.map(l => ({ producto_id: l.producto_id, cantidad_pedida: l.cantidad_pedida })),
+        detalles: lineas.map(l => ({
+          producto_id: l.producto_id,
+          cantidad_pedida: l.cantidad_pedida,
+          cantidad_entregada: l.cantidad_entregada,
+        })),
       });
       setPedido(res.data);
       setLineas(res.data.detalles.map(detalleToLinea));
@@ -415,13 +423,12 @@ export const PedidoDetailPage = () => {
                         {puedeEntregar && l.detalle_id != null ? (
                           <CantidadInput
                             min={l.cantidad_entregada}
-                            max={l.cantidad_pedida}
                             value={l.cantidad_entregada}
                             onChange={e => {
                               const raw = parseInt(e.target.value);
-                              const val = Number.isNaN(raw)
-                                ? l.cantidad_entregada
-                                : Math.min(l.cantidad_pedida, raw);
+                              // Sin tope en cantidad_pedida: se permite entregar más de lo
+                              // pedido originalmente (p. ej. un ajuste posterior del pedido).
+                              const val = Number.isNaN(raw) ? l.cantidad_entregada : Math.max(0, raw);
                               setLineas(prev => prev.map(x => x.producto_id === l.producto_id ? { ...x, cantidad_entregada: val } : x));
                             }}
                             style={{ width: 70, padding: '4px 8px', border: '1px solid var(--gray-300)', borderRadius: 'var(--radius)', fontSize: 14 }}
