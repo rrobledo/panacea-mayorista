@@ -180,6 +180,7 @@ export const ProductoPopup = ({ open, onClose, onAdd }) => {
               value={cantidad}
               min={1}
               onChange={e => setCantidad(Math.max(1, parseInt(e.target.value) || 1))}
+              onFocus={e => e.target.select()}
               autoFocus
               style={{ maxWidth: 160 }}
             />

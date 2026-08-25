@@ -15,6 +15,13 @@ import {
 
 const fmt = (v) => `$${Number(v).toFixed(2)}`;
 
+// un ítem se considera "agregado después" si su fecha_creacion es de un día
+// distinto al de la carga del pedido (más de 1 día de margen de holgura)
+const agregadoDespues = (fechaCreacion, fechaCarga) => {
+  if (!fechaCreacion || !fechaCarga) return false;
+  return new Date(fechaCreacion) - new Date(fechaCarga) > 24 * 60 * 60 * 1000;
+};
+
 const detalleToLinea = (d) => ({
   detalle_id:       d.id,
   producto_id:       d.producto_id,
@@ -25,7 +32,18 @@ const detalleToLinea = (d) => ({
   unidad_medida:     d.producto?.unidad_medida || '',
   precio_actual:     d.producto?.precio_actual || 0,
   categoria:         d.producto?.categoria     || '',
+  fecha_creacion:    d.fecha_creacion          || null,
 });
+
+// input numérico que se autoselecciona al enfocar, para que escribir
+// reemplace el valor entero en vez de insertarse al lado
+const CantidadInput = ({ onFocus, ...props }) => (
+  <input
+    type="number"
+    onFocus={e => { e.target.select(); onFocus?.(e); }}
+    {...props}
+  />
+);
 
 export const PedidoDetailPage = () => {
   const { id } = useParams();
@@ -364,7 +382,7 @@ export const PedidoDetailPage = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                 <thead>
                   <tr style={{ background: 'var(--gray-50)', borderBottom: '2px solid var(--gray-200)' }}>
-                    {['Código', 'Producto', 'Unidad', 'Precio Unit.', 'Cant. Pedida', 'Cant. Entregada', 'Total', ''].map(h => (
+                    {['Código', 'Producto', 'Unidad', 'Precio Unit.', 'Cant. Pedida', 'Cant. Entregada', 'Total', 'Agregado', ''].map(h => (
                       <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--gray-600)', fontSize: 12, whiteSpace: 'nowrap' }}>
                         {h}
                       </th>
@@ -380,8 +398,7 @@ export const PedidoDetailPage = () => {
                       <td style={{ padding: '10px 14px' }}>{fmt(l.precio_actual)}</td>
                       <td style={{ padding: '10px 14px' }}>
                         {esPendiente ? (
-                          <input
-                            type="number"
+                          <CantidadInput
                             min={1}
                             value={l.cantidad_pedida}
                             onChange={e => {
@@ -396,8 +413,7 @@ export const PedidoDetailPage = () => {
                       </td>
                       <td style={{ padding: '10px 14px' }}>
                         {puedeEntregar && l.detalle_id != null ? (
-                          <input
-                            type="number"
+                          <CantidadInput
                             min={l.cantidad_entregada}
                             max={l.cantidad_pedida}
                             value={l.cantidad_entregada}
@@ -416,6 +432,19 @@ export const PedidoDetailPage = () => {
                       </td>
                       <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--primary)' }}>
                         {fmt(l.precio_actual * l.cantidad_pedida)}
+                      </td>
+                      <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                        {l.fecha_creacion ? (
+                          agregadoDespues(l.fecha_creacion, pedido.fecha_carga) ? (
+                            <span className="badge badge-warning" title={`Agregado el ${formatDate(l.fecha_creacion)}, después de crear el pedido`}>
+                              {formatDate(l.fecha_creacion)}
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--gray-500)', fontSize: 12 }}>{formatDate(l.fecha_creacion)}</span>
+                          )
+                        ) : (
+                          <span style={{ color: 'var(--gray-400)', fontSize: 12 }}>—</span>
+                        )}
                       </td>
                       <td style={{ padding: '10px 14px' }}>
                         {esPendiente && (
