@@ -25,6 +25,7 @@ const NAV = [
     // { label: 'Imprimible',         to: '/remitos-reportes/printable' },
     { label: 'Pendientes por Día',          to: '/remitos-reportes/pendientes'           },
     { label: 'Productos Pendientes x Día', to: '/remitos-reportes/productos-pendientes' },
+    { label: 'Pendientes de Facturar',     to: '/remitos-reportes/pendientes-facturar'  },
   ]},
   {
     label: 'Entidades', icon: Package, children: [

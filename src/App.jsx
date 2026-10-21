@@ -16,6 +16,7 @@ import { RemitosListPage } from './pages/RemitosListPage';
 import { RemitoDetailPage } from './pages/RemitoDetailPage';
 import { PendientesPorDiaPage } from './pages/PendientesPorDiaPage';
 import { ProductosPendientesPorDiaPage } from './pages/ProductosPendientesPorDiaPage';
+import { PendientesFacturarPage } from './pages/PendientesFacturarPage';
 import { ClientesPage } from './pages/ClientesPage';
 import { PageLoader } from './components/ui';
 import './index.css';
@@ -71,6 +72,7 @@ function App() {
                     <Route path="/remitos-reportes/printable"   element={<PrintableReportPage />} />
                     <Route path="/remitos-reportes/pendientes"          element={<PendientesPorDiaPage />} />
                     <Route path="/remitos-reportes/productos-pendientes" element={<ProductosPendientesPorDiaPage />} />
+                    <Route path="/remitos-reportes/pendientes-facturar"  element={<PendientesFacturarPage />} />
                     <Route path="/settings"            element={<Placeholder title="Configuración" />} />
                     <Route path="/settings/profile"    element={<ComplexFormPage />} />
                     <Route path="*"                    element={<Placeholder title="404 – Página no encontrada" />} />
