@@ -1,44 +1,27 @@
 export { formatDate } from './dates';
 
-export const ESTADO_LABELS = {
-  LISTO:          'Listo',
-  EN_TRANSITO:    'En Tránsito',
-  RECIBIDO:       'Recibido',
-};
-
-export const ESTADO_BADGE_CLASS = {
-  LISTO:          'badge-primary',
-  EN_TRANSITO:    'badge-primary',
-  RECIBIDO:       'badge-success',
-};
-
-export const NEXT_ESTADO = {
-  LISTO:          'EN_TRANSITO',
-  EN_TRANSITO:    'RECIBIDO',
-  RECIBIDO:       null,
-};
-
-export const ESTADO_FILTER_OPTIONS = [
-  { value: '',              label: 'Todos' },
-  { value: 'LISTO',          label: 'Listo' },
-  { value: 'EN_TRANSITO',    label: 'En Tránsito' },
-  { value: 'RECIBIDO',       label: 'Recibido' },
-];
-
+// Un remito es un envío cargado con es_remito = true: comparte estados con el
+// pedido (ver pedidosConfig.js) y se distingue por destinatario.
 export const TIPO_LABELS = {
-  VENTA:         'Venta',
-  TRANSFERENCIA: 'Transferencia',
+  CLIENTE:  'A cliente',
+  SUCURSAL: 'Entre sucursales',
 };
 
 export const TIPO_FILTER_OPTIONS = [
-  { value: '',              label: 'Todos' },
-  { value: 'VENTA',          label: 'Venta' },
-  { value: 'TRANSFERENCIA',  label: 'Transferencia' },
+  { value: '',         label: 'Todos' },
+  { value: 'CLIENTE',  label: 'A cliente' },
+  { value: 'SUCURSAL', label: 'Entre sucursales' },
 ];
 
-// Orden del historial de estados del remito: cada uno con el campo de fecha que registra su cumplimiento
-export const HISTORIAL_ESTADOS = [
-  { key: 'LISTO',          fechaKey: 'fecha_listo' },
-  { key: 'EN_TRANSITO',    fechaKey: 'fecha_despacho' },
-  { key: 'RECIBIDO',       fechaKey: 'fecha_recibido' },
+export const ESTADO_FILTER_OPTIONS = [
+  { value: '',                   label: 'Todos' },
+  { value: 'LISTO_PARA_ENTREGA', label: 'Listo Para Entrega' },
+  { value: 'ENTREGADO',          label: 'Entregado' },
+  { value: 'CANCELADO',          label: 'Cancelado' },
+];
+
+export const FACTURADO_FILTER_OPTIONS = [
+  { value: '',      label: 'Todos' },
+  { value: 'true',  label: 'Facturados' },
+  { value: 'false', label: 'Sin facturar' },
 ];

@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2, UserCheck, Package } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { remitosService } from '../services/api';
+import { pedidosService } from '../services/api';
 import { Field } from '../components/ui';
 import { ClientePopup } from '../components/remitos/ClientePopup';
 import { ProductoPopup } from '../components/remitos/ProductoPopup';
@@ -20,8 +21,11 @@ const initialForm = {
 export const RemitoNuevoPage = () => {
   const { user } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
 
-  const [tipo, setTipo]                     = useState('VENTA');
+  // Un remito es un envío con es_remito = true: tipo CLIENTE (venta) o
+  // SUCURSAL (transferencia; sucursal_id es el destino).
+  const [tipo, setTipo]                     = useState('CLIENTE');
   const [cliente, setCliente]               = useState(null);
   const [productos, setProductos]           = useState([]);
   const [form, setForm]                     = useState({ ...initialForm, vendedor: user?.name || '' });
@@ -62,13 +66,13 @@ export const RemitoNuevoPage = () => {
     setProductos(prev => prev.filter(p => p.id !== id));
   };
 
-  const sucursalesIguales = tipo === 'TRANSFERENCIA'
+  const sucursalesIguales = tipo === 'SUCURSAL'
     && form.origenSucursalId !== ''
     && form.origenSucursalId === form.destinoSucursalId;
 
   const canSubmit = (() => {
     if (submitting || productos.length === 0 || !form.vendedor.trim()) return false;
-    if (tipo === 'VENTA') return cliente !== null;
+    if (tipo === 'CLIENTE') return cliente !== null;
     return form.origenSucursalId !== '' && form.destinoSucursalId !== '' && !sucursalesIguales;
   })();
 
@@ -78,25 +82,25 @@ export const RemitoNuevoPage = () => {
     setSubmitting(true);
     try {
       const payload = {
+        es_remito: true,
         tipo,
         vendedor: form.vendedor.trim(),
         observaciones: form.observaciones.trim() || null,
+        fecha_entrega: new Date().toISOString(),
+        // Nada pedido: lo que se remite va como entregado.
         detalles: productos.map(p => ({
           producto_id: p.id,
-          cantidad: p.cantidad,
+          cantidad_pedida: 0,
+          cantidad_entregada: p.cantidad,
         })),
-        ...(tipo === 'VENTA'
+        ...(tipo === 'CLIENTE'
           ? { cliente_id: cliente.idcliente }
-          : { origen_sucursal_id: Number(form.origenSucursalId), destino_sucursal_id: Number(form.destinoSucursalId) }),
+          : { origen_sucursal_id: Number(form.origenSucursalId), sucursal_id: Number(form.destinoSucursalId) }),
       };
 
-      const res = await remitosService.create(payload);
+      const res = await pedidosService.create(payload);
       toast.success(`Remito #${res.data.id} registrado exitosamente`);
-
-      setCliente(null);
-      setProductos([]);
-      setForm({ ...initialForm, vendedor: user?.name || '' });
-      setErrors({});
+      navigate(`/pedidos/${res.data.id}`);
     } catch (err) {
       const msg = err.response?.data?.detail;
       const detail = Array.isArray(msg)
@@ -127,16 +131,16 @@ export const RemitoNuevoPage = () => {
         <div className="card-body">
           <div style={{ display: 'flex', gap: 12 }}>
             <button
-              className={`btn ${tipo === 'VENTA' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => handleTipoChange('VENTA')}
+              className={`btn ${tipo === 'CLIENTE' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => handleTipoChange('CLIENTE')}
             >
-              Venta
+              A cliente
             </button>
             <button
-              className={`btn ${tipo === 'TRANSFERENCIA' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => handleTipoChange('TRANSFERENCIA')}
+              className={`btn ${tipo === 'SUCURSAL' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => handleTipoChange('SUCURSAL')}
             >
-              Transferencia
+              Entre sucursales
             </button>
           </div>
         </div>
@@ -150,7 +154,7 @@ export const RemitoNuevoPage = () => {
         <div className="card-body">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
 
-            {tipo === 'VENTA' ? (
+            {tipo === 'CLIENTE' ? (
               <div className="form-group" style={{ gridColumn: 'span 2' }}>
                 <label className="form-label">
                   Cliente <span className="required">*</span>

@@ -27,15 +27,6 @@ export const productosService = {
   get:  (id) => api.get(`/productos/${id}`),
 };
 
-export const remitosService = {
-  create: (data)   => api.post('/remitos', data),
-  list:   (params) => api.get('/remitos', { params }),
-  get:    (id)     => api.get(`/remitos/${id}`),
-  update: (id, data) => api.put(`/remitos/${id}`, data),
-  remove: (id)     => api.delete(`/remitos/${id}`),
-  estado: (id, nuevo_estado) => api.patch(`/remitos/${id}/estado`, { nuevo_estado }),
-};
-
 export const pedidosService = {
   create: (data)   => api.post('/pedidos', data),
   list:   (params) => api.get('/pedidos', { params }),
@@ -44,6 +35,8 @@ export const pedidosService = {
   remove: (id)     => api.delete(`/pedidos/${id}`),
   estado: (id, nuevo_estado) => api.patch(`/pedidos/${id}/estado`, { nuevo_estado }),
   entrega: (id, lineas) => api.patch(`/pedidos/${id}/entrega`, { lineas }),
+  // { fecha_facturado, factura_referencia } — las dos nulas desmarcan
+  facturacion: (id, data) => api.patch(`/pedidos/${id}/facturacion`, data),
 };
 
 export const sucursalesService = {

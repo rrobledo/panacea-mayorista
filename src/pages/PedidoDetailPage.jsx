@@ -1,17 +1,16 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Save, ChevronRight, Ban, Truck } from 'lucide-react';
-import { pedidosService, remitosService } from '../services/api';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Plus, Trash2, Save, ChevronRight, Ban, Printer, Receipt } from 'lucide-react';
+import { pedidosService } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { Field, PageLoader, ConfirmDialog } from '../components/ui';
 import { ProductoPopup } from '../components/remitos/ProductoPopup';
+import { EnvioPrint } from '../components/remitos/EnvioPrint';
 import {
-  ESTADO_LABELS, ESTADO_BADGE_CLASS, NEXT_ESTADO, ESTADOS_GENERADORES, HISTORIAL_ESTADOS, canCancelar, formatDate,
+  ESTADO_LABELS, ESTADO_BADGE_CLASS, NEXT_ESTADO, HISTORIAL_ESTADOS, ESTADOS_FACTURABLES,
+  canCancelar, esEditable, seImprimeComoRemito, formatDate,
 } from '../utils/pedidosConfig';
-import {
-  ESTADO_LABELS as REMITO_ESTADO_LABELS, ESTADO_BADGE_CLASS as REMITO_ESTADO_BADGE_CLASS,
-} from '../utils/remitosConfig';
 
 const fmt = (v) => `$${Number(v).toFixed(2)}`;
 
@@ -55,7 +54,7 @@ export const PedidoDetailPage = () => {
   const [saving, setSaving]           = useState(false);
   const [savingEntrega, setSavingEntrega] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
-  const [remitos, setRemitos]         = useState([]);
+  const [savingFactura, setSavingFactura] = useState(false);
 
   // Editable form state
   const [vendedor, setVendedor]           = useState('');
@@ -64,6 +63,13 @@ export const PedidoDetailPage = () => {
   const [productoPopup, setProductoPopup] = useState(false);
   const [confirmTransicion, setConfirmTransicion] = useState(false);
   const [confirmCancelar, setConfirmCancelar]     = useState(false);
+  const [fechaFacturado, setFechaFacturado]       = useState('');
+  const [facturaReferencia, setFacturaReferencia] = useState('');
+
+  const cargarFacturacion = (p) => {
+    setFechaFacturado(p.fecha_facturado ? p.fecha_facturado.split('T')[0] : '');
+    setFacturaReferencia(p.factura_referencia || '');
+  };
 
   const cargarPedido = () => {
     setLoading(true);
@@ -74,40 +80,42 @@ export const PedidoDetailPage = () => {
         setVendedor(p.vendedor || '');
         setObservaciones(p.observaciones || '');
         setLineas(p.detalles.map(detalleToLinea));
+        cargarFacturacion(p);
       })
       .catch(() => toast.error('No se pudo cargar el pedido'))
       .finally(() => setLoading(false));
   };
 
-  const cargarRemitos = () => {
-    remitosService.list({ pedido_id: id })
-      .then(res => setRemitos(res.data))
-      .catch(() => {});
-  };
-
   useEffect(() => {
     cargarPedido();
-    cargarRemitos();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const esPendiente = pedido?.estado === 'PENDIENTE';
-  const puedeEntregar = pedido && pedido.estado !== 'ENTREGADO' && pedido.estado !== 'CANCELADO';
+  const esRemito = Boolean(pedido?.es_remito);
+  const editable = esEditable(pedido);
+  // En un remito directo lo entregado se edita con "Guardar cambios"; el
+  // registro de entrega por línea es solo para pedidos.
+  const puedeEntregar = pedido && !esRemito && !pedido.fecha_facturado
+    && pedido.estado !== 'ENTREGADO' && pedido.estado !== 'CANCELADO';
+  const cantidadDe = (l) => (esRemito ? l.cantidad_entregada : l.cantidad_pedida);
 
   const handleProductoAdd = (producto, cantidad) => {
     setLineas(prev => {
       const idx = prev.findIndex(l => l.producto_id === producto.id);
       if (idx !== -1) {
         const next = [...prev];
-        next[idx] = { ...next[idx], cantidad_pedida: next[idx].cantidad_pedida + cantidad };
+        next[idx] = esRemito
+          ? { ...next[idx], cantidad_entregada: next[idx].cantidad_entregada + cantidad }
+          : { ...next[idx], cantidad_pedida: next[idx].cantidad_pedida + cantidad };
         return next;
       }
       // Un ítem agregado editando un pedido ya creado nace con lo pedido ya
       // entregado — a diferencia de un pedido nuevo, donde nada se entregó
       // todavía. El usuario puede seguir ajustando la cantidad entregada
-      // después con "Guardar entrega".
+      // después con "Guardar entrega". En un remito no hay nada pedido.
       return [...prev, {
-        detalle_id: null, producto_id: producto.id, cantidad_pedida: cantidad, cantidad_entregada: cantidad,
+        detalle_id: null, producto_id: producto.id,
+        cantidad_pedida: esRemito ? 0 : cantidad, cantidad_entregada: cantidad,
         nombre: producto.nombre, codigo: producto.codigo, unidad_medida: producto.unidad_medida,
         precio_actual: producto.precio_actual, categoria: producto.categoria,
       }];
@@ -128,13 +136,13 @@ export const PedidoDetailPage = () => {
         observaciones: observaciones.trim() || null,
         detalles: lineas.map(l => ({
           producto_id: l.producto_id,
-          cantidad_pedida: l.cantidad_pedida,
+          cantidad_pedida: esRemito ? 0 : l.cantidad_pedida,
           cantidad_entregada: l.cantidad_entregada,
         })),
       });
       setPedido(res.data);
       setLineas(res.data.detalles.map(detalleToLinea));
-      toast.success('Pedido actualizado');
+      toast.success(esRemito ? 'Remito actualizado' : 'Pedido actualizado');
     } catch (err) {
       const msg = err.response?.data?.detail;
       toast.error(typeof msg === 'string' ? msg : 'Error al guardar');
@@ -170,15 +178,6 @@ export const PedidoDetailPage = () => {
       const res = await pedidosService.estado(id, siguiente);
       setPedido(res.data);
       toast.success(`Estado actualizado a: ${ESTADO_LABELS[siguiente]}`);
-
-      if (ESTADOS_GENERADORES.includes(siguiente)) {
-        const remitosRes = await remitosService.list({ pedido_id: id });
-        setRemitos(remitosRes.data);
-        if (remitosRes.data.length > remitos.length) {
-          const nuevo = remitosRes.data[remitosRes.data.length - 1];
-          toast.success(`Se generó el Remito #${nuevo.id} — ver la sección "Remitos generados"`);
-        }
-      }
     } catch (err) {
       const msg = err.response?.data?.detail;
       toast.error(typeof msg === 'string' ? msg : 'Error al cambiar el estado');
@@ -203,6 +202,27 @@ export const PedidoDetailPage = () => {
     }
   };
 
+  const guardarFacturacion = async (data) => {
+    setSavingFactura(true);
+    try {
+      const res = await pedidosService.facturacion(id, data);
+      setPedido(res.data);
+      cargarFacturacion(res.data);
+      toast.success(data.fecha_facturado ? 'Facturación registrada' : 'Facturación quitada');
+    } catch (err) {
+      const msg = err.response?.data?.detail;
+      toast.error(typeof msg === 'string' ? msg : 'Error al guardar la facturación');
+    } finally {
+      setSavingFactura(false);
+    }
+  };
+
+  const handleFacturar = () => {
+    if (!fechaFacturado) { toast.error('La fecha de facturación es requerida'); return; }
+    if (!facturaReferencia.trim()) { toast.error('La referencia de la factura es requerida'); return; }
+    guardarFacturacion({ fecha_facturado: `${fechaFacturado}T00:00:00`, factura_referencia: facturaReferencia.trim() });
+  };
+
   if (loading) return <PageLoader />;
   if (!pedido)  return (
     <div className="card">
@@ -219,11 +239,20 @@ export const PedidoDetailPage = () => {
     ? (pedido.sucursal?.nombre || `Sucursal #${pedido.sucursal_id}`)
     : nombreCliente;
 
+  const nombreOrigen = pedido.origen_sucursal?.nombre
+    || (pedido.origen_sucursal_id ? `Sucursal #${pedido.origen_sucursal_id}` : null);
+
   const siguienteEstado = NEXT_ESTADO[pedido.estado];
-  const totalEstimado = lineas.reduce((acc, l) => acc + l.precio_actual * l.cantidad_pedida, 0);
+  const totalEstimado = lineas.reduce((acc, l) => acc + l.precio_actual * cantidadDe(l), 0);
+  const historial = esRemito
+    ? HISTORIAL_ESTADOS.filter(({ key }) => key === 'LISTO_PARA_ENTREGA' || key === 'ENTREGADO')
+    : HISTORIAL_ESTADOS;
+  const puedeFacturar = ESTADOS_FACTURABLES.includes(pedido.estado);
+  const titulo = esRemito ? 'Remito' : 'Pedido';
 
   return (
     <div>
+      <div className="no-print">
       {/* Header */}
       <div className="page-header">
         <div className="page-header-left" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -232,18 +261,22 @@ export const PedidoDetailPage = () => {
           </button>
           <div>
             <div className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              Pedido #{pedido.id}
+              {titulo} #{pedido.id}
               <span className={`badge ${ESTADO_BADGE_CLASS[pedido.estado] || 'badge-gray'}`}>
                 {ESTADO_LABELS[pedido.estado] || pedido.estado}
               </span>
             </div>
             <div className="page-subtitle">
-              Cargado el {formatDate(pedido.fecha_carga)} · {nombreSolicitante}
+              Cargado el {formatDate(pedido.fecha_carga)} · {esSucursal && nombreOrigen ? `${nombreOrigen} → ` : ''}{nombreSolicitante}
+              {pedido.remitos_legacy_ids?.length > 0 && ` · Remito anterior ${pedido.remitos_legacy_ids.map(n => `#${n}`).join(', ')}`}
             </div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          {canCancelar(pedido.estado) && (
+          <button className="btn btn-secondary" onClick={() => window.print()}>
+            <Printer size={14} /> {seImprimeComoRemito(pedido) ? 'Imprimir remito' : 'Imprimir pedido'}
+          </button>
+          {canCancelar(pedido) && (
             <button
               className="btn btn-secondary"
               onClick={() => setConfirmCancelar(true)}
@@ -264,7 +297,7 @@ export const PedidoDetailPage = () => {
               }
             </button>
           )}
-          {esPendiente && (
+          {editable && (
             <button className="btn btn-primary" onClick={handleGuardar} disabled={saving}>
               {saving
                 ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Guardando…</>
@@ -277,19 +310,19 @@ export const PedidoDetailPage = () => {
 
       {/* ── Datos del pedido ── */}
       <div className="card" style={{ marginBottom: 20 }}>
-        <div className="card-header"><span className="card-title">Datos del Pedido</span></div>
+        <div className="card-header"><span className="card-title">Datos del {titulo}</span></div>
         <div className="card-body">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
 
             {/* Cliente / Sucursal (read-only) */}
             <div className="form-group" style={{ gridColumn: 'span 2' }}>
-              <label className="form-label">{esSucursal ? 'Sucursal' : 'Cliente'}</label>
+              <label className="form-label">{esSucursal ? 'Origen → Sucursal destino' : 'Cliente'}</label>
               <div style={{
                 padding: '8px 12px', background: 'var(--gray-50)',
                 border: '1px solid var(--gray-200)', borderRadius: 'var(--radius)',
                 fontSize: 14, color: 'var(--gray-700)',
               }}>
-                <span style={{ fontWeight: 600 }}>{nombreSolicitante}</span>
+                <span style={{ fontWeight: 600 }}>{esSucursal && nombreOrigen ? `${nombreOrigen} → ` : ''}{nombreSolicitante}</span>
                 {!esSucursal && pedido.cliente?.cuit      && <span style={{ marginLeft: 16, color: 'var(--gray-500)', fontSize: 12 }}>CUIT: {pedido.cliente.cuit}</span>}
                 {!esSucursal && pedido.cliente?.direccion && <span style={{ marginLeft: 12, color: 'var(--gray-500)', fontSize: 12 }}>{pedido.cliente.direccion}</span>}
                 {!esSucursal && pedido.cliente?.localidad && <span style={{ marginLeft: 12, color: 'var(--gray-500)', fontSize: 12 }}>{pedido.cliente.localidad}</span>}
@@ -315,8 +348,8 @@ export const PedidoDetailPage = () => {
                 value={vendedor}
                 onChange={e => setVendedor(e.target.value)}
                 placeholder="Nombre del vendedor"
-                readOnly={!esPendiente}
-                style={!esPendiente ? { background: 'var(--gray-50)', color: 'var(--gray-500)' } : undefined}
+                readOnly={!editable}
+                style={!editable ? { background: 'var(--gray-50)', color: 'var(--gray-500)' } : undefined}
               />
             </Field>
 
@@ -324,7 +357,7 @@ export const PedidoDetailPage = () => {
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
               <label className="form-label">Historial de estados</label>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {HISTORIAL_ESTADOS.map(({ key, fechaKey }) => {
+                {historial.map(({ key, fechaKey }) => {
                   const fecha = pedido[fechaKey];
                   return (
                     <div
@@ -361,8 +394,8 @@ export const PedidoDetailPage = () => {
                 onChange={e => setObservaciones(e.target.value)}
                 placeholder="Notas adicionales…"
                 rows={2}
-                readOnly={!esPendiente}
-                style={!esPendiente ? { background: 'var(--gray-50)', color: 'var(--gray-500)' } : undefined}
+                readOnly={!editable}
+                style={!editable ? { background: 'var(--gray-50)', color: 'var(--gray-500)' } : undefined}
               />
             </Field>
           </div>
@@ -373,7 +406,7 @@ export const PedidoDetailPage = () => {
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
           <span className="card-title">Productos</span>
-          {esPendiente && (
+          {editable && (
             <button className="btn btn-primary btn-sm" onClick={() => setProductoPopup(true)}>
               <Plus size={14} /> Agregar Producto
             </button>
@@ -405,7 +438,7 @@ export const PedidoDetailPage = () => {
                       <td style={{ padding: '10px 14px', color: 'var(--gray-500)' }}>{l.unidad_medida}</td>
                       <td style={{ padding: '10px 14px' }}>{fmt(l.precio_actual)}</td>
                       <td style={{ padding: '10px 14px' }}>
-                        {esPendiente ? (
+                        {editable && !esRemito ? (
                           <CantidadInput
                             min={1}
                             value={l.cantidad_pedida}
@@ -433,12 +466,22 @@ export const PedidoDetailPage = () => {
                             }}
                             style={{ width: 70, padding: '4px 8px', border: '1px solid var(--gray-300)', borderRadius: 'var(--radius)', fontSize: 14 }}
                           />
+                        ) : editable && esRemito ? (
+                          <CantidadInput
+                            min={1}
+                            value={l.cantidad_entregada}
+                            onChange={e => {
+                              const val = Math.max(1, parseInt(e.target.value) || 1);
+                              setLineas(prev => prev.map(x => x.producto_id === l.producto_id ? { ...x, cantidad_entregada: val } : x));
+                            }}
+                            style={{ width: 70, padding: '4px 8px', border: '1px solid var(--gray-300)', borderRadius: 'var(--radius)', fontSize: 14 }}
+                          />
                         ) : (
                           <span style={{ color: 'var(--gray-700)' }}>{l.cantidad_entregada || '—'}</span>
                         )}
                       </td>
                       <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--primary)' }}>
-                        {fmt(l.precio_actual * l.cantidad_pedida)}
+                        {fmt(l.precio_actual * cantidadDe(l))}
                       </td>
                       <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
                         {l.fecha_creacion ? (
@@ -454,7 +497,7 @@ export const PedidoDetailPage = () => {
                         )}
                       </td>
                       <td style={{ padding: '10px 14px' }}>
-                        {esPendiente && (
+                        {editable && (
                           <button
                             className="btn btn-ghost btn-icon btn-sm"
                             onClick={() => handleEliminarLinea(l.producto_id)}
@@ -486,44 +529,58 @@ export const PedidoDetailPage = () => {
         )}
       </div>
 
-      {/* ── Remitos generados ── */}
+      {/* ── Facturación ── */}
       <div className="card" style={{ marginBottom: 20 }}>
-        <div className="card-header"><span className="card-title">Remitos generados</span></div>
-        {remitos.length === 0 ? (
-          <div className="card-body" style={{ padding: 24, textAlign: 'center', color: 'var(--gray-400)', fontSize: 14 }}>
-            Este pedido todavía no generó ningún remito.
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-              <thead>
-                <tr style={{ background: 'var(--gray-50)', borderBottom: '2px solid var(--gray-200)' }}>
-                  {['#', 'Fecha', 'Estado', ''].map(h => (
-                    <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--gray-600)', fontSize: 12 }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {remitos.map(r => (
-                  <tr key={r.id} style={{ borderBottom: '1px solid var(--gray-100)' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: 600 }}>#{r.id}</td>
-                    <td style={{ padding: '10px 14px', color: 'var(--gray-500)' }}>{formatDate(r.fecha_carga)}</td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <span className={`badge ${REMITO_ESTADO_BADGE_CLASS[r.estado] || 'badge-gray'}`}>
-                        {REMITO_ESTADO_LABELS[r.estado] || r.estado}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <Link className="btn btn-secondary btn-sm" to={`/remitos/${r.id}`}>
-                        <Truck size={13} /> Ver
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div className="card-header">
+          <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Receipt size={16} /> Facturación
+            {pedido.fecha_facturado
+              ? <span className="badge badge-success">Facturado</span>
+              : <span className="badge badge-gray">Sin facturar</span>}
+          </span>
+        </div>
+        <div className="card-body">
+          {!puedeFacturar && !pedido.fecha_facturado ? (
+            <div style={{ color: 'var(--gray-400)', fontSize: 14 }}>
+              Se puede facturar cuando el {titulo.toLowerCase()} está listo para entrega o entregado.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, alignItems: 'end' }}>
+              <Field label="Fecha de facturación" required>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={fechaFacturado}
+                  onChange={e => setFechaFacturado(e.target.value)}
+                />
+              </Field>
+              <Field label="Referencia de la factura" required>
+                <input
+                  type="text"
+                  className="form-input"
+                  maxLength={100}
+                  value={facturaReferencia}
+                  onChange={e => setFacturaReferencia(e.target.value)}
+                  placeholder="Ej: A-0001-00001234"
+                />
+              </Field>
+              <div style={{ display: 'flex', gap: 8, paddingBottom: 2 }}>
+                <button className="btn btn-primary" onClick={handleFacturar} disabled={savingFactura}>
+                  <Save size={14} /> Guardar
+                </button>
+                {pedido.fecha_facturado && (
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => guardarFacturacion({ fecha_facturado: null, factura_referencia: null })}
+                    disabled={savingFactura}
+                  >
+                    Quitar
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <ProductoPopup
@@ -538,7 +595,7 @@ export const PedidoDetailPage = () => {
         onConfirm={handleTransicion}
         variant="primary"
         title="Cambiar estado"
-        message={`¿Confirma avanzar el pedido de "${ESTADO_LABELS[pedido.estado]}" a "${ESTADO_LABELS[siguienteEstado]}"?`}
+        message={`¿Confirma avanzar el ${titulo.toLowerCase()} de "${ESTADO_LABELS[pedido.estado]}" a "${ESTADO_LABELS[siguienteEstado]}"?`}
       />
 
       <ConfirmDialog
@@ -546,9 +603,20 @@ export const PedidoDetailPage = () => {
         onCancel={() => setConfirmCancelar(false)}
         onConfirm={handleCancelar}
         variant="danger"
-        title="Cancelar pedido"
-        message="¿Confirma cancelar este pedido? Esta acción no se puede deshacer."
+        title={`Cancelar ${titulo.toLowerCase()}`}
+        message={`¿Confirma cancelar este ${titulo.toLowerCase()}? Esta acción no se puede deshacer.`}
       />
+      </div> {/* end .no-print */}
+
+      {/* ── Print: copia como REMITO o PEDIDO ── */}
+      <style>{`
+        @media print {
+          @page { size: portrait; margin: 1cm; }
+        }
+      `}</style>
+      <div className="remito-print-wrapper" style={{ display: 'none' }}>
+        <EnvioPrint envio={pedido} lineas={lineas} vendedor={vendedor} observaciones={observaciones} />
+      </div>
     </div>
   );
 };

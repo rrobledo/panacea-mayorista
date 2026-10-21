@@ -4,19 +4,21 @@ import { Search, X, Eye, Trash2 } from 'lucide-react';
 import { DataGrid } from '../components/grid/DataGrid';
 import { ClientePopup } from '../components/remitos/ClientePopup';
 import { SucursalSelect } from '../components/remitos/SucursalSelect';
-import { remitosService } from '../services/api';
+import { pedidosService } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { InlineLoader, ConfirmDialog } from '../components/ui';
+import { ESTADO_LABELS, ESTADO_BADGE_CLASS, esEditable } from '../utils/pedidosConfig';
 import {
-  ESTADO_LABELS, ESTADO_BADGE_CLASS, ESTADO_FILTER_OPTIONS,
-  TIPO_LABELS, TIPO_FILTER_OPTIONS, formatDate,
+  ESTADO_FILTER_OPTIONS, FACTURADO_FILTER_OPTIONS, TIPO_LABELS, TIPO_FILTER_OPTIONS, formatDate,
 } from '../utils/remitosConfig';
 
-const STORAGE_KEY = 'panacea_remitos_consulta';
+// v2: los remitos pasaron a ser envíos (/pedidos?es_remito=true) y los
+// filtros guardados con la forma anterior ya no aplican.
+const STORAGE_KEY = 'panacea_remitos_consulta_v2';
 
 const initialFilters = {
-  fechaDesde: '', fechaHasta: '', estadoFilter: '', tipoFilter: '',
-  pedidoId: '', origenSucursalId: '', destinoSucursalId: '',
+  fechaDesde: '', fechaHasta: '', estadoFilter: '', tipoFilter: '', facturadoFilter: '',
+  remitoLegacyId: '', origenSucursalId: '', destinoSucursalId: '',
 };
 
 // Read persisted state synchronously so first render is already restored
@@ -28,9 +30,9 @@ const loadSaved = () => {
 };
 
 const nombreClienteOSucursales = (row) => {
-  if (row.tipo === 'TRANSFERENCIA') {
-    const origen  = row.origen_sucursal?.nombre  || `Sucursal #${row.origen_sucursal_id}`;
-    const destino = row.destino_sucursal?.nombre || `Sucursal #${row.destino_sucursal_id}`;
+  if (row.tipo === 'SUCURSAL') {
+    const origen  = row.origen_sucursal?.nombre || `Sucursal #${row.origen_sucursal_id}`;
+    const destino = row.sucursal?.nombre        || `Sucursal #${row.sucursal_id}`;
     return `${origen} → ${destino}`;
   }
   return [row.cliente?.nom1, row.cliente?.nom2].filter(Boolean).join(' ') || `#${row.cliente_id}`;
@@ -51,16 +53,16 @@ const buildColumns = (navigate, onDelete) => [
     accessorFn: nombreClienteOSucursales,
   },
   {
-    id: 'pedido_id',
-    header: 'Pedido',
-    size: 90,
-    accessorFn: row => row.pedido_id ? `#${row.pedido_id}` : '—',
+    id: 'remito_anterior',
+    header: 'Remito Anterior',
+    size: 110,
+    accessorFn: row => row.remitos_legacy_ids?.length ? row.remitos_legacy_ids.map(n => `#${n}`).join(', ') : '—',
   },
   {
-    id: 'fecha_carga',
-    header: 'Fecha Carga',
+    id: 'fecha_entrega',
+    header: 'Fecha',
     size: 120,
-    accessorFn: row => formatDate(row.fecha_carga),
+    accessorFn: row => formatDate(row.fecha_entrega),
   },
   { accessorKey: 'vendedor', header: 'Vendedor', size: 140 },
   {
@@ -74,10 +76,18 @@ const buildColumns = (navigate, onDelete) => [
     ),
   },
   {
-    id: 'fecha_recibido',
-    header: 'Fecha Recibido',
+    id: 'fecha_entregado',
+    header: 'Fecha Entregado',
     size: 130,
-    accessorFn: row => row.fecha_recibido ? formatDate(row.fecha_recibido) : '—',
+    accessorFn: row => row.fecha_entregado ? formatDate(row.fecha_entregado) : '—',
+  },
+  {
+    id: 'factura',
+    header: 'Factura',
+    size: 160,
+    accessorFn: row => row.fecha_facturado
+      ? `${row.factura_referencia} (${formatDate(row.fecha_facturado)})`
+      : 'Sin facturar',
   },
   {
     id: 'acciones',
@@ -87,11 +97,11 @@ const buildColumns = (navigate, onDelete) => [
       <div style={{ display: 'flex', gap: 6 }}>
         <button
           className="btn btn-secondary btn-sm"
-          onClick={e => { e.stopPropagation(); navigate(`/remitos/${row.original.id}`); }}
+          onClick={e => { e.stopPropagation(); navigate(`/pedidos/${row.original.id}`); }}
         >
           <Eye size={13} /> Ver
         </button>
-        {row.original.estado === 'LISTO' && (
+        {esEditable(row.original) && (
           <button
             className="btn btn-ghost btn-icon btn-sm"
             onClick={e => { e.stopPropagation(); onDelete(row.original); }}
@@ -131,17 +141,18 @@ export const RemitosListPage = () => {
     setLoading(true);
     setSearched(true);
 
-    const params = { limit: 500 };
+    const params = { limit: 500, es_remito: true };
     if (filters.fechaDesde)        params.fecha_desde         = `${filters.fechaDesde}T00:00:00`;
     if (filters.fechaHasta)        params.fecha_hasta         = `${filters.fechaHasta}T23:59:59`;
     if (cliente)                   params.cliente_id          = cliente.idcliente;
     if (filters.estadoFilter)      params.estado              = filters.estadoFilter;
     if (filters.tipoFilter)        params.tipo                = filters.tipoFilter;
-    if (filters.pedidoId)          params.pedido_id           = filters.pedidoId;
+    if (filters.facturadoFilter)   params.facturado           = filters.facturadoFilter;
+    if (filters.remitoLegacyId)    params.remito_legacy_id    = filters.remitoLegacyId;
     if (filters.origenSucursalId)  params.origen_sucursal_id  = filters.origenSucursalId;
-    if (filters.destinoSucursalId) params.destino_sucursal_id = filters.destinoSucursalId;
+    if (filters.destinoSucursalId) params.sucursal_id         = filters.destinoSucursalId;
 
-    remitosService.list(params)
+    pedidosService.list(params)
       .then(res => {
         const data = res.data;
         setRemitos(data);
@@ -171,7 +182,7 @@ export const RemitosListPage = () => {
   const handleDelete = () => {
     const remito = confirmDelete;
     setConfirmDelete(null);
-    remitosService.remove(remito.id)
+    pedidosService.remove(remito.id)
       .then(() => {
         const updated = remitos.filter(r => r.id !== remito.id);
         setRemitos(updated);
@@ -191,7 +202,7 @@ export const RemitosListPage = () => {
       <div className="page-header">
         <div className="page-header-left">
           <div className="page-title">Consulta de Remitos</div>
-          <div className="page-subtitle">Búsqueda y seguimiento de remitos de venta y transferencia</div>
+          <div className="page-subtitle">Remitos a clientes y entre sucursales</div>
         </div>
       </div>
 
@@ -217,7 +228,7 @@ export const RemitosListPage = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Fecha Carga Desde</label>
+              <label className="form-label">Fecha Desde</label>
               <input
                 type="date"
                 className="form-input"
@@ -227,7 +238,7 @@ export const RemitosListPage = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Fecha Carga Hasta</label>
+              <label className="form-label">Fecha Hasta</label>
               <input
                 type="date"
                 className="form-input"
@@ -260,12 +271,12 @@ export const RemitosListPage = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Pedido #</label>
+              <label className="form-label">Remito anterior #</label>
               <input
                 type="number"
                 className="form-input"
-                value={filters.pedidoId}
-                onChange={e => setFilters(f => ({ ...f, pedidoId: e.target.value }))}
+                value={filters.remitoLegacyId}
+                onChange={e => setFilters(f => ({ ...f, remitoLegacyId: e.target.value }))}
                 placeholder="Ej: 123"
               />
             </div>
@@ -299,6 +310,19 @@ export const RemitosListPage = () => {
               </select>
             </div>
 
+            <div className="form-group">
+              <label className="form-label">Facturación</label>
+              <select
+                className="form-select"
+                value={filters.facturadoFilter}
+                onChange={e => setFilters(f => ({ ...f, facturadoFilter: e.target.value }))}
+              >
+                {FACTURADO_FILTER_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+
             <div style={{ display: 'flex', gap: 8, paddingTop: 2 }}>
               <button className="btn btn-primary" onClick={buscar} disabled={loading}>
                 <Search size={14} />
@@ -321,7 +345,7 @@ export const RemitosListPage = () => {
           columns={columns}
           data={remitos}
           emptyText="No se encontraron remitos con los filtros seleccionados"
-          onRowClick={row => navigate(`/remitos/${row.id}`)}
+          onRowClick={row => navigate(`/pedidos/${row.id}`)}
           initialPageIndex={pageIndex}
           onPageChange={handlePageChange}
           pageSize={20}

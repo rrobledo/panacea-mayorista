@@ -40,8 +40,19 @@ export const NEXT_ESTADO = {
   CANCELADO:          null,
 };
 
-// Transiciones que, al completarse, pueden disparar la generación automática de un Remito
-export const ESTADOS_GENERADORES = ['LISTO_PARA_ENTREGA', 'ENTREGADO'];
+// Un envío se imprime como REMITO si se cargó como remito directo o si ya está
+// listo para entregar / entregado; si no, como PEDIDO.
+export const seImprimeComoRemito = (envio) =>
+  Boolean(envio?.es_remito) || ['LISTO_PARA_ENTREGA', 'ENTREGADO'].includes(envio?.estado);
+
+// Solo un envío listo para entregar o entregado puede marcarse como facturado.
+export const ESTADOS_FACTURABLES = ['LISTO_PARA_ENTREGA', 'ENTREGADO'];
+
+// Pedido: editable solo en PENDIENTE. Remito directo: mientras está listo para
+// entregar y sin facturar.
+export const esEditable = (envio) => (envio?.es_remito
+  ? envio.estado === 'LISTO_PARA_ENTREGA' && !envio.fecha_facturado
+  : envio?.estado === 'PENDIENTE');
 
 export const ESTADO_FILTER_OPTIONS = [
   { value: '',                   label: 'Todos' },
@@ -53,7 +64,8 @@ export const ESTADO_FILTER_OPTIONS = [
   { value: 'CANCELADO',          label: 'Cancelado' },
 ];
 
-export const canCancelar = (estado) => estado !== 'ENTREGADO' && estado !== 'CANCELADO';
+export const canCancelar = (envio) =>
+  envio.estado !== 'ENTREGADO' && envio.estado !== 'CANCELADO' && !envio.fecha_facturado;
 
 // Orden del historial de estados del pedido: cada uno con el campo de fecha que registra su cumplimiento
 export const HISTORIAL_ESTADOS = [
