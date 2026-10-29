@@ -35,6 +35,7 @@ export const pedidosService = {
   remove: (id)     => api.delete(`/pedidos/${id}`),
   estado: (id, nuevo_estado) => api.patch(`/pedidos/${id}/estado`, { nuevo_estado }),
   entrega: (id, lineas) => api.patch(`/pedidos/${id}/entrega`, { lineas }),
+  agregarDetalles: (id, detalles) => api.post(`/pedidos/${id}/detalles`, { detalles }),
   // { fecha_facturado, factura_referencia } — las dos nulas desmarcan
   facturacion: (id, data) => api.patch(`/pedidos/${id}/facturacion`, data),
 };

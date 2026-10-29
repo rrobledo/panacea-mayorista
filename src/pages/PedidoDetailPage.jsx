@@ -11,14 +11,18 @@ import {
   ESTADO_LABELS, ESTADO_BADGE_CLASS, NEXT_ESTADO, HISTORIAL_ESTADOS, ESTADOS_FACTURABLES,
   canCancelar, esEditable, seImprimeComoRemito, formatDate,
 } from '../utils/pedidosConfig';
+import { formatDateTime } from '../utils/dates';
 
 const fmt = (v) => `$${Number(v).toFixed(2)}`;
 
-// un ítem se considera "agregado después" si su fecha_creacion es de un día
-// distinto al de la carga del pedido (más de 1 día de margen de holgura)
-const agregadoDespues = (fechaCreacion, fechaCarga) => {
-  if (!fechaCreacion || !fechaCarga) return false;
-  return new Date(fechaCreacion) - new Date(fechaCarga) > 24 * 60 * 60 * 1000;
+// un ítem se considera "agregado después" si se cargó una vez que el pedido
+// pasó a preparación, o si su fecha_creacion es más de 1 día posterior a la
+// carga del pedido (ediciones en PENDIENTE)
+const agregadoDespues = (fechaCreacion, pedido) => {
+  if (!fechaCreacion) return false;
+  const creado = new Date(fechaCreacion);
+  if (pedido.fecha_en_preparacion && creado > new Date(pedido.fecha_en_preparacion)) return true;
+  return Boolean(pedido.fecha_carga) && creado - new Date(pedido.fecha_carga) > 24 * 60 * 60 * 1000;
 };
 
 const detalleToLinea = (d) => ({
@@ -55,6 +59,7 @@ export const PedidoDetailPage = () => {
   const [savingEntrega, setSavingEntrega] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [savingFactura, setSavingFactura] = useState(false);
+  const [agregando, setAgregando]         = useState(false);
 
   // Editable form state
   const [vendedor, setVendedor]           = useState('');
@@ -97,9 +102,41 @@ export const PedidoDetailPage = () => {
   // registro de entrega por línea es solo para pedidos.
   const puedeEntregar = pedido && !esRemito && !pedido.fecha_facturado
     && pedido.estado !== 'ENTREGADO' && pedido.estado !== 'CANCELADO';
+  // Un pedido en preparación no se edita, pero admite productos nuevos: se
+  // guardan al instante y quedan con su propia fecha de carga.
+  const puedeAgregar = pedido && !esRemito && pedido.estado === 'EN_PREPARACION' && !pedido.fecha_facturado;
   const cantidadDe = (l) => (esRemito ? l.cantidad_entregada : l.cantidad_pedida);
 
+  const handleProductoAgregado = async (producto, cantidad) => {
+    if (lineas.some(l => l.producto_id === producto.id)) {
+      toast.error(`${producto.nombre} ya está en el pedido`);
+      return;
+    }
+    setAgregando(true);
+    try {
+      // Como al editar, el ítem nace con lo pedido ya entregado.
+      const res = await pedidosService.agregarDetalles(id, [
+        { producto_id: producto.id, cantidad_pedida: cantidad, cantidad_entregada: cantidad },
+      ]);
+      setPedido(res.data);
+      // Conserva las cantidades entregadas que se estaban editando sin guardar.
+      setLineas(prev => res.data.detalles.map(d => {
+        const actual = prev.find(l => l.detalle_id === d.id);
+        const linea = detalleToLinea(d);
+        return actual ? { ...linea, cantidad_entregada: actual.cantidad_entregada } : linea;
+      }));
+      setProductoPopup(false);
+      toast.success(`${producto.nombre} agregado al pedido`);
+    } catch (err) {
+      const msg = err.response?.data?.detail;
+      toast.error(typeof msg === 'string' ? msg : 'Error al agregar el producto');
+    } finally {
+      setAgregando(false);
+    }
+  };
+
   const handleProductoAdd = (producto, cantidad) => {
+    if (puedeAgregar) { handleProductoAgregado(producto, cantidad); return; }
     setLineas(prev => {
       const idx = prev.findIndex(l => l.producto_id === producto.id);
       if (idx !== -1) {
@@ -406,8 +443,8 @@ export const PedidoDetailPage = () => {
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
           <span className="card-title">Productos</span>
-          {editable && (
-            <button className="btn btn-primary btn-sm" onClick={() => setProductoPopup(true)}>
+          {(editable || puedeAgregar) && (
+            <button className="btn btn-primary btn-sm" onClick={() => setProductoPopup(true)} disabled={agregando}>
               <Plus size={14} /> Agregar Producto
             </button>
           )}
@@ -423,7 +460,7 @@ export const PedidoDetailPage = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                 <thead>
                   <tr style={{ background: 'var(--gray-50)', borderBottom: '2px solid var(--gray-200)' }}>
-                    {['Código', 'Producto', 'Unidad', 'Precio Unit.', 'Cant. Pedida', 'Cant. Entregada', 'Total', 'Agregado', ''].map(h => (
+                    {['Código', 'Producto', 'Unidad', 'Precio Unit.', 'Cant. Pedida', 'Cant. Entregada', 'Total', 'Fecha carga', ''].map(h => (
                       <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--gray-600)', fontSize: 12, whiteSpace: 'nowrap' }}>
                         {h}
                       </th>
@@ -485,9 +522,9 @@ export const PedidoDetailPage = () => {
                       </td>
                       <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
                         {l.fecha_creacion ? (
-                          agregadoDespues(l.fecha_creacion, pedido.fecha_carga) ? (
-                            <span className="badge badge-warning" title={`Agregado el ${formatDate(l.fecha_creacion)}, después de crear el pedido`}>
-                              {formatDate(l.fecha_creacion)}
+                          agregadoDespues(l.fecha_creacion, pedido) ? (
+                            <span className="badge badge-warning" title={`Agregado el ${formatDateTime(l.fecha_creacion)}, después de crear el pedido`}>
+                              Agregado {formatDateTime(l.fecha_creacion)}
                             </span>
                           ) : (
                             <span style={{ color: 'var(--gray-500)', fontSize: 12 }}>{formatDate(l.fecha_creacion)}</span>

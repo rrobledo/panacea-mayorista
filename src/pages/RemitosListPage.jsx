@@ -12,8 +12,9 @@ import {
   ESTADO_FILTER_OPTIONS, FACTURADO_FILTER_OPTIONS, TIPO_LABELS, TIPO_FILTER_OPTIONS, formatDate,
 } from '../utils/remitosConfig';
 
-// v2: los remitos pasaron a ser envíos (/pedidos?es_remito=true) y los
-// filtros guardados con la forma anterior ya no aplican.
+// v2: los remitos pasaron a ser envíos (/pedidos?como_remito=true: remitos
+// directos y pedidos que ya pasaron a remito) y los filtros guardados con la
+// forma anterior ya no aplican.
 const STORAGE_KEY = 'panacea_remitos_consulta_v2';
 
 const initialFilters = {
@@ -45,6 +46,12 @@ const buildColumns = (navigate, onDelete) => [
     header: 'Tipo',
     size: 110,
     accessorFn: row => TIPO_LABELS[row.tipo] || row.tipo,
+  },
+  {
+    id: 'origen',
+    header: 'Origen',
+    size: 120,
+    accessorFn: row => (row.es_remito ? 'Remito directo' : `Pedido #${row.id}`),
   },
   {
     id: 'cliente_sucursales',
@@ -141,7 +148,7 @@ export const RemitosListPage = () => {
     setLoading(true);
     setSearched(true);
 
-    const params = { limit: 500, es_remito: true };
+    const params = { limit: 500, como_remito: true };
     if (filters.fechaDesde)        params.fecha_desde         = `${filters.fechaDesde}T00:00:00`;
     if (filters.fechaHasta)        params.fecha_hasta         = `${filters.fechaHasta}T23:59:59`;
     if (cliente)                   params.cliente_id          = cliente.idcliente;
@@ -202,7 +209,7 @@ export const RemitosListPage = () => {
       <div className="page-header">
         <div className="page-header-left">
           <div className="page-title">Consulta de Remitos</div>
-          <div className="page-subtitle">Remitos a clientes y entre sucursales</div>
+          <div className="page-subtitle">Remitos directos y pedidos que ya pasaron a remito, a clientes y entre sucursales</div>
         </div>
       </div>
 
