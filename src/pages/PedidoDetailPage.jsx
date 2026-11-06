@@ -492,7 +492,7 @@ export const PedidoDetailPage = () => {
                       <td style={{ padding: '10px 14px' }}>
                         {puedeEntregar && l.detalle_id != null ? (
                           <CantidadInput
-                            min={l.cantidad_entregada}
+                            min={0}
                             value={l.cantidad_entregada}
                             onChange={e => {
                               const raw = parseInt(e.target.value);
@@ -505,10 +505,11 @@ export const PedidoDetailPage = () => {
                           />
                         ) : editable && esRemito ? (
                           <CantidadInput
-                            min={1}
+                            min={0}
                             value={l.cantidad_entregada}
                             onChange={e => {
-                              const val = Math.max(1, parseInt(e.target.value) || 1);
+                              const raw = parseInt(e.target.value);
+                              const val = Number.isNaN(raw) ? 0 : Math.max(0, raw);
                               setLineas(prev => prev.map(x => x.producto_id === l.producto_id ? { ...x, cantidad_entregada: val } : x));
                             }}
                             style={{ width: 70, padding: '4px 8px', border: '1px solid var(--gray-300)', borderRadius: 'var(--radius)', fontSize: 14 }}
